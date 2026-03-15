@@ -11,10 +11,10 @@ export const authConfig = {
       
       if (isOnAdmin) {
         if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+        return false; // Automatically redirects to /login
       }
       return true;
     },
   },
-  providers: [], // Add providers in auth.ts, keep this empty for middleware compatibility
+  providers: [], // Providers are defined in your main auth.ts
 } satisfies NextAuthConfig;
