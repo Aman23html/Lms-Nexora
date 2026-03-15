@@ -1,6 +1,6 @@
 'use client'
 
-'use client'
+
 import { signOut } from "next-auth/react"
 
 // Inside your Logout button component:
