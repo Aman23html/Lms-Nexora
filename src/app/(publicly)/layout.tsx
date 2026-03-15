@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import Navbar from './_components/Navbar';
+import FooterBase from './_components/FooterBase';
 
 export default function LayoutPublic({children}:{children:ReactNode}){
     return (
@@ -10,6 +11,7 @@ export default function LayoutPublic({children}:{children:ReactNode}){
             <main className="container mx-auto px-4 md:px-6 lg:px-8">
                 {children}
             </main>
+            <FooterBase />
         </div>
     )
 }
