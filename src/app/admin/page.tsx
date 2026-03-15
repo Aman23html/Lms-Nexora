@@ -80,7 +80,7 @@ export default function AdminDashboard() {
             </div>
             <Button 
               variant="ghost" 
-              onClick={() => signOut({ callbackUrl: "/login", redirect: true })}
+              onClick={() => signOut({ redirectTo: "/login" })}
               className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold text-xs uppercase tracking-widest transition-all px-4"
             >
               <LogOut size={16} className="mr-2" /> Sign Out

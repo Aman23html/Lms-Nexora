@@ -1,14 +1,17 @@
-import NextAuth from "next-auth";
-import { authConfig } from "./auth.config";
+import { auth } from "@/auth"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-const { auth } = NextAuth(authConfig);
+export async function proxy(req: NextRequest) {
+  const session = await auth()
 
-// 🔹 The new convention requires a named 'proxy' function export
-export async function proxy(req: any) {
-  return await auth(req);
+  if (!session && req.nextUrl.pathname.startsWith("/admin")) {
+    return NextResponse.redirect(new URL("/login", req.url))
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
-  // This matcher prevents the proxy from running on static assets and APIs
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
-};
+  matcher: ["/admin/:path*"]
+}

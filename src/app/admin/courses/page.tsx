@@ -103,7 +103,7 @@ export default function CoursesPage() {
              <span className="text-[10px] font-black uppercase tracking-widest">Sync Registry</span>
            </Button>
 <Button 
-  onClick={() => signOut({ callbackUrl: "/login", redirect: true })}
+  onClick={() => signOut({ redirectTo: "/login" })}
   variant="ghost"
   className="rounded-xl text-red-500"
 >
