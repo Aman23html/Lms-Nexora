@@ -1,4 +1,7 @@
 'use client'
+import { signOut } from "next-auth/react"
+
+
 
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -99,13 +102,13 @@ export default function CoursesPage() {
              <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
              <span className="text-[10px] font-black uppercase tracking-widest">Sync Registry</span>
            </Button>
-           <Button 
-            onClick={() => router.push("/login")} 
-            variant="ghost" 
-            className="rounded-xl text-red-500 hover:bg-red-50 gap-2 font-bold text-xs uppercase tracking-widest px-4"
-           >
-             <LogOut size={16} /> Sign Out
-           </Button>
+<Button 
+  onClick={() => signOut({ callbackUrl: "/login", redirect: true })}
+  variant="ghost"
+  className="rounded-xl text-red-500"
+>
+  Sign Out
+</Button>
         </div>
       </nav>
 

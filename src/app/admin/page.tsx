@@ -1,5 +1,10 @@
 'use client'
 
+'use client'
+import { signOut } from "next-auth/react"
+
+// Inside your Logout button component:
+
 import React from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -75,7 +80,7 @@ export default function AdminDashboard() {
             </div>
             <Button 
               variant="ghost" 
-              onClick={() => router.push("/login")}
+              onClick={() => signOut({ callbackUrl: "/login", redirect: true })}
               className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold text-xs uppercase tracking-widest transition-all px-4"
             >
               <LogOut size={16} className="mr-2" /> Sign Out
