@@ -12,56 +12,36 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import CourseHeader from "@/components/CourseHeader"
 import { Key } from "react"
+import connectDb from "@/lib/db"
+import Course from "@/models/course.model"
 
 async function getCourse(id: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
   try {
-    const res = await fetch(`${baseUrl}/api/admin/courses/${id}`, {
-      cache: "no-store",
-      headers: { "Content-Type": "application/json" }
-    })
-    if (!res.ok) return null
-    return res.json()
+    await connectDb()
+
+    const course = await Course.findById(id).lean()
+
+    if (!course) return null
+
+    return JSON.parse(JSON.stringify(course))
   } catch (error) {
     return null
   }
 }
+export const dynamic = "force-dynamic"
 
-export default async function CoursePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CoursePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = await params
+
   const course = await getCourse(id)
 
   if (!course) return notFound()
 
   const details = course.details || {}
-
-  // 🔹 "Coming Soon" State UI
-  if (course.isAvailableSoon) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6 text-center">
-         <div className="w-20 h-20 bg-blue-600 text-white rounded-full flex items-center justify-center mb-8 shadow-xl animate-bounce">
-            <Clock size={32} />
-         </div>
-         <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight uppercase">{course.title}</h1>
-         <p className="text-slate-500 max-w-lg text-lg font-medium leading-relaxed">
-            The curriculum is currently being calibrated for the next industry standard. 
-            Deployment to Nexora Registry scheduled shortly.
-         </p>
-         <div className="mt-10 flex gap-4">
-           <Link href="/contactus">
-             <Button className="bg-blue-600 hover:bg-blue-700 h-14 px-10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all shadow-lg shadow-blue-200">
-               Notify Me
-             </Button>
-           </Link>
-           <Link href="/">
-             <Button variant="outline" className="h-14 px-10 rounded-xl font-bold uppercase tracking-widest text-xs border-slate-200">
-               Back to Inventory
-             </Button>
-           </Link>
-         </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-100 font-sans">
