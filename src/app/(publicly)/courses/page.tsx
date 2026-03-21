@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, Variants } from "framer-motion"
 import { 
   Search, 
   Filter, 
-  BookOpen,
   ArrowRight,
   Sparkles,
   Clock,
@@ -16,8 +15,21 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
+// --- TYPES & INTERFACES ---
+interface Course {
+  _id: string;
+  title: string;
+  category?: string;
+  level?: string;
+  recommended?: boolean;
+  duration?: string;
+  description?: string;
+  price?: number;
+  image?: string;
+}
+
 // --- ANIMATION VARIANTS ---
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -25,20 +37,16 @@ const containerVariants = {
   }
 }
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
   exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
 }
 
-// --- ELITE COURSE CARD COMPONENT ---
-function CourseCard({ course }: { course: any }) {
+// --- ELITE COURSE CARD COMPONENT (Now a standard React component) ---
+function CourseCard({ course }: { course: Course }) {
   return (
-    <motion.div 
-      variants={itemVariants}
-      layout
-      className="group bg-white border border-slate-200/80 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 flex flex-col h-full"
-    >
+    <div className="group bg-white border border-slate-200/80 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 flex flex-col h-full">
       {/* Card Header / Image */}
       <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 p-1">
         <div className="w-full h-full rounded-[1.5rem] overflow-hidden relative">
@@ -47,7 +55,6 @@ function CourseCard({ course }: { course: any }) {
             alt={course.title} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          {/* Subtle overlay gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
         
@@ -97,7 +104,7 @@ function CourseCard({ course }: { course: any }) {
           </Link>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -122,20 +129,19 @@ function SkeletonCard() {
   )
 }
 
+// --- MAIN PAGE COMPONENT ---
 export default function CoursesExplorer() {
-  const [courses, setCourses] = useState<any[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("All")
 
-  // 🔹 FETCH FROM BACKEND
   useEffect(() => {
     async function fetchRegistry() {
       try {
-        // Fallback dummy data for visual testing if API fails
         const res = await fetch("/api/admin/courses", { cache: 'no-store' })
         const data = await res.json()
-        setCourses(Array.isArray(data) ? data : (data.data || []))
+        setCourses(Array.isArray(data) ? data : (data?.data || []))
       } catch (err) {
         console.error("Registry sync failed", err)
       } finally {
@@ -145,8 +151,8 @@ export default function CoursesExplorer() {
     fetchRegistry()
   }, [])
 
-  // 🔹 FILTER LOGIC
-  const categories = ["All", ...Array.from(new Set(courses.map(c => c.category).filter(Boolean)))]
+  // Safely extract unique categories
+  const categories = ["All", ...Array.from(new Set(courses.map(c => c.category).filter(Boolean)))] as string[]
   
   const filteredCourses = useMemo(() => {
     return courses.filter(c => {
@@ -161,14 +167,12 @@ export default function CoursesExplorer() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] selection:bg-blue-200 selection:text-blue-900 font-sans pb-24">
       
-      {/* 🌌 HERO / SEARCH SECTION (Light Premium Theme) */}
+      {/* 🌌 HERO / SEARCH SECTION */}
       <section className="bg-white border-b border-slate-200/60 pt-20 pb-24 px-6 relative overflow-hidden">
-        {/* Decorative Gradients */}
         <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-blue-50 rounded-full blur-[100px] opacity-60 pointer-events-none" />
         <div className="absolute top-[20%] left-[10%] w-[400px] h-[400px] bg-indigo-50 rounded-full blur-[100px] opacity-60 pointer-events-none" />
         
         <div className="max-w-4xl mx-auto relative z-10 text-center">
-          
           <motion.div 
             initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-blue-700 font-bold text-xs uppercase tracking-widest mb-6"
@@ -190,7 +194,6 @@ export default function CoursesExplorer() {
             Explore our curated selection of high-fidelity technical programs designed to accelerate your engineering career.
           </motion.p>
 
-          {/* Advanced Search Bar */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
             className="max-w-2xl mx-auto relative group shadow-2xl shadow-slate-200/50 rounded-full"
@@ -217,8 +220,6 @@ export default function CoursesExplorer() {
 
       {/* 🏗️ BROWSE & FILTER AREA */}
       <section className="max-w-[1400px] mx-auto px-6 lg:px-8 mt-12">
-        
-        {/* Category Pill Bar */}
         <div className="flex items-center gap-3 mb-12 overflow-x-auto no-scrollbar pb-4">
           <div className="flex items-center gap-2 pr-4 border-r border-slate-300 shrink-0">
              <Filter size={16} className="text-slate-500" />
@@ -239,9 +240,7 @@ export default function CoursesExplorer() {
           ))}
         </div>
 
-        {/* 🔹 COURSE GRID */}
         {loading ? (
-          // Advanced Skeleton Loading Grid
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
@@ -261,12 +260,21 @@ export default function CoursesExplorer() {
             >
               <AnimatePresence mode="popLayout">
                 {filteredCourses.map((course) => (
-                  <CourseCard key={course._id} course={course} />
+                  // The motion.div MUST wrap the custom component directly here
+                  <motion.div
+                    key={course._id}
+                    variants={itemVariants}
+                    layout
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                  >
+                    <CourseCard course={course} />
+                  </motion.div>
                 ))}
               </AnimatePresence>
             </motion.div>
 
-            {/* Zero State */}
             {filteredCourses.length === 0 && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
@@ -292,7 +300,6 @@ export default function CoursesExplorer() {
           </>
         )}
       </section>
-      
     </div>
   )
 }
