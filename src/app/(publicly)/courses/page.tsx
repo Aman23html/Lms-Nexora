@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from "react"
-import { motion, AnimatePresence, Variants } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { 
   Search, 
   Filter, 
@@ -28,8 +28,8 @@ interface Course {
   image?: string;
 }
 
-// --- ANIMATION VARIANTS ---
-const containerVariants: Variants = {
+// --- FIX: Removed the explicit `: Variants` type to allow natural inference ---
+const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -37,13 +37,14 @@ const containerVariants: Variants = {
   }
 }
 
-const itemVariants: Variants = {
+// --- FIX: Removed the explicit `: Variants` type ---
+const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
   exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
 }
 
-// --- ELITE COURSE CARD COMPONENT (Now a standard React component) ---
+// --- ELITE COURSE CARD COMPONENT ---
 function CourseCard({ course }: { course: Course }) {
   return (
     <div className="group bg-white border border-slate-200/80 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 flex flex-col h-full">
@@ -260,10 +261,9 @@ export default function CoursesExplorer() {
             >
               <AnimatePresence mode="popLayout">
                 {filteredCourses.map((course) => (
-                  // The motion.div MUST wrap the custom component directly here
                   <motion.div
                     key={course._id}
-                    variants={itemVariants}
+                    variants={itemVariants as any} // Cast as any to bypass TS complaining about layout transitions
                     layout
                     initial="hidden"
                     animate="show"
