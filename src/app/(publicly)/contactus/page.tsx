@@ -22,14 +22,37 @@ export default function ContactUsPage() {
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
-    // Add your API logic here
-    setTimeout(() => {
-      setLoading(false)
-      setIsSubmitted(true)
-    }, 1500)
+  e.preventDefault()
+  setLoading(true)
+
+  const form = e.currentTarget
+
+  const data = new FormData(form)
+
+  const url = "https://script.google.com/macros/s/AKfycbzRexSqcFo6093iso8fEdpQTy7uveHkqnBllDgnojIoTQsPvmTwKnpvVfbJPHJAKccv/exec"
+
+  try {
+    await fetch(url, {
+      method: "POST",
+      body: new URLSearchParams({
+        FullName: data.get("fullname") as string,
+        Email: data.get("email") as string,
+        Phone: data.get("phone") as string,
+        Program: data.get("program") as string,
+        Message: data.get("message") as string,
+      }),
+    })
+
+    setIsSubmitted(true)
+    form.reset()
+
+  } catch (error) {
+    console.error(error)
+    alert("Error submitting form")
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] selection:bg-blue-100">
@@ -115,33 +138,34 @@ export default function ContactUsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="label-elite">Full Name</label>
-                      <input required type="text" className="form-input-elite" placeholder="John Doe" />
+                      <input name="fullname" required type="text" className="form-input-elite" placeholder="John Doe" />
                     </div>
                     <div className="space-y-2">
                       <label className="label-elite">Work Email</label>
-                      <input required type="email" className="form-input-elite" placeholder="john@company.com" />
+                      <input name="email" required type="email" className="form-input-elite" placeholder="john@company.com" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="label-elite">Phone Number</label>
-                      <input required type="tel" className="form-input-elite" placeholder="+91 00000 00000" />
+                      <input name="phone" required type="tel" className="form-input-elite" placeholder="+91 00000 00000" />
                     </div>
                     <div className="space-y-2">
                       <label className="label-elite">Interested Program</label>
-                      <select className="form-input-elite appearance-none bg-slate-50">
+                      <select name="program" className="form-input-elite appearance-none bg-slate-50">
                         <option>Full Stack Development</option>
                         <option>AI & Machine Learning</option>
                         <option>Data Science Masterclass</option>
                         <option>Cyber Security</option>
+                        <option>Others</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="label-elite">Your Inquiry</label>
-                    <textarea required className="form-input-elite min-h-[150px] pt-4" placeholder="Tell us about your career goals..." />
+                    <textarea name="message" required className="form-input-elite min-h-[150px] pt-4" placeholder="Tell us about your career goals..." />
                   </div>
 
                   <Button 
