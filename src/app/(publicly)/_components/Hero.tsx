@@ -1,6 +1,6 @@
 'use client'
 import React, { useRef, useState, useMemo } from 'react'
-import { motion, useMotionValue, useSpring, useTransform, useMotionTemplate } from 'framer-motion'
+import { motion, useMotionValue, useSpring, useTransform, useMotionTemplate, cubicBezier } from 'framer-motion'
 import { 
   Search, Brain, Code2, Terminal, Star, Users, PlayCircle, TrendingUp, Award, Sparkles, ArrowRight, Command
 } from 'lucide-react'
@@ -63,7 +63,7 @@ export default function AdvancedEdTechHero() {
   // --- 3. Animation Variants ---
   const fadeUp = {
     hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
-    visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.8, ease: "easeInOut" } }
+    visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.8, ease: cubicBezier(0.42, 0, 0.58, 1) } }
   }
 
   const stagger = {
