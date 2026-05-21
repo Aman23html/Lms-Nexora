@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { SlidersHorizontal, Zap } from 'lucide-react'
+import { ListFilter } from 'lucide-react'
 import { Course } from './CourseCard'
 
 interface Props {
@@ -13,86 +13,99 @@ interface Props {
 
 export default function FilterRibbon({ activeSub, setSub, courses = [] }: Props) {
 
-  // 🔹 FIXED: Safely extract unique subcategories and ensure "All" is unique
-  const subFilters = useMemo(() => {
-    if (!Array.isArray(courses)) return ["All"]
+  // 🔹 Advanced: Extract unique subcategories AND their course counts
+  const subCategoryData = useMemo(() => {
+    if (!Array.isArray(courses)) return [{ name: "All", count: 0 }]
 
-    const uniqueSubs = new Set<string>()
-    
+    const counts: Record<string, number> = {}
+    let total = 0
+
     courses.forEach(course => {
-      // Trim and ensure we don't add "All" from data since we add it manually
       const sub = course?.subCategory?.trim()
       if (sub && sub.toLowerCase() !== "all") {
-        uniqueSubs.add(sub)
+        counts[sub] = (counts[sub] || 0) + 1
       }
+      total++ // Count all valid courses for the "All" tab
     })
 
-    // Return "All" as the first element, followed by alphabetically sorted subcategories
-    return ["All", ...Array.from(uniqueSubs).sort()]
+    // Sort alphabetically and map to an array of objects
+    const sortedSubs = Object.keys(counts).sort().map(name => ({
+      name,
+      count: counts[name]
+    }))
+
+    return [{ name: "All", count: total }, ...sortedSubs]
   }, [courses])
 
-  const visibleCount = useMemo(() => {
-    if (!Array.isArray(courses)) return 0
-    return activeSub === "All" 
-      ? courses.length 
-      : courses.filter(c => c?.subCategory === activeSub).length
-  }, [courses, activeSub])
-
   return (
-    <div className="flex items-center gap-6 w-full group/ribbon">
+    <div className="flex items-center gap-4 w-full min-w-0">
       
-      <div className="hidden lg:flex items-center gap-3 shrink-0 border-r border-slate-100 pr-6">
-        <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-200">
-          <SlidersHorizontal size={14} />
+      {/* 🔹 Left Label (Desktop Only) */}
+      <div className="hidden lg:flex items-center gap-2.5 shrink-0 border-r border-slate-200 pr-5 py-1">
+        <ListFilter size={16} className="text-slate-400" />
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          Specializations
+        </span>
+      </div>
+
+      {/* 🔹 Scrollable Filter Chips (Fixed Overflow) */}
+      {/* Added min-w-0 to the wrapper to prevent flex blowout */}
+      <div className="flex-1 min-w-0 relative">
+        <div className="flex items-center gap-2.5 overflow-x-auto hide-scrollbar py-1">
+          {subCategoryData.map((filter) => {
+            const isActive = activeSub === filter.name
+            
+            return (
+              <button
+                key={`filter-${filter.name}`}
+                onClick={() => setSub(filter.name)}
+                className={`
+                  relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap shrink-0 border group
+                  ${isActive 
+                    ? "text-white border-transparent" 
+                    : "text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm"
+                  }
+                `}
+              >
+                {/* Smooth High-Contrast Active Pill Background */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeRibbonTab"
+                    className="absolute inset-0 bg-slate-900 rounded-full z-0 shadow-md"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+
+                <span className="relative z-10 flex items-center gap-2">
+                  {filter.name}
+                  {/* Embedded Course Count Badge */}
+                  <span className={`
+                    text-[10px] px-1.5 py-0.5 rounded-full font-bold transition-colors
+                    ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'}
+                  `}>
+                    {filter.count}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
         </div>
-        <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em]">
-          Sub-registry
-        </p>
+        
+        {/* Subtle Right Fade Indicator (Shows it's scrollable) */}
+        <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
       </div>
 
-      <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-2 flex-1">
-        {subFilters.map((filter) => {
-          const isActive = activeSub === filter
-          
-          return (
-            <button
-              key={`filter-${filter}`} // 🔹 Added prefix to ensure keys are unique strings
-              onClick={() => setSub(filter)}
-              className={`
-                relative px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 whitespace-nowrap
-                ${isActive ? "text-white" : "text-slate-500 hover:text-blue-600 hover:bg-slate-50"}
-              `}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="activeRibbonTab"
-                  className="absolute inset-0 bg-blue-600 rounded-2xl z-0 shadow-xl shadow-blue-100"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-
-              <span className="relative z-10 flex items-center gap-2">
-                {isActive && <Zap size={10} className="text-blue-200 fill-blue-200 animate-pulse" />}
-                {filter}
-              </span>
-
-              {!isActive && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-              )}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="hidden xl:flex items-center gap-2 pl-6 border-l border-slate-100 shrink-0">
-         <div className="text-right">
-            <p className="text-[8px] font-black text-slate-300 uppercase">Visible</p>
-            <p className="text-xs font-black text-slate-900 leading-none">
-                {visibleCount}
-            </p>
-         </div>
-      </div>
-
+      {/* Embedded CSS to ensure scrollbar is hidden across all browsers */}
+      <style jsx>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   )
 }

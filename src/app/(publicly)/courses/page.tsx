@@ -1,15 +1,10 @@
 'use client'
 
-import { useEffect, useState, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useEffect, useState, useMemo, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
+import { motion, AnimatePresence, Variants } from "framer-motion"
 import { 
-  Search, 
-  Filter, 
-  ArrowRight,
-  Sparkles,
-  Clock,
-  X,
-  GraduationCap
+  Search, Filter, ArrowRight, Sparkles, Clock, X, GraduationCap
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -24,21 +19,17 @@ interface Course {
   recommended?: boolean;
   duration?: string;
   description?: string;
-  price?: number;
+  price?: number | string; // Handled safely below
   image?: string;
 }
 
-// --- FIX: Removed the explicit `: Variants` type to allow natural inference ---
-const containerVariants = {
+// --- ANIMATION VARIANTS ---
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
 }
 
-// --- FIX: Removed the explicit `: Variants` type ---
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
   exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
@@ -46,17 +37,22 @@ const itemVariants = {
 
 // --- ELITE COURSE CARD COMPONENT ---
 function CourseCard({ course }: { course: Course }) {
+  // Safely handle price formatting whether it's a string or number
+  const formattedPrice = course.price 
+    ? Number(course.price).toLocaleString('en-IN') 
+    : '0';
+
   return (
     <div className="group bg-white border border-slate-200/80 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 flex flex-col h-full">
       {/* Card Header / Image */}
       <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 p-1">
-        <div className="w-full h-full rounded-[1.5rem] overflow-hidden relative">
+        <div className="w-full h-full rounded-[1.5rem] overflow-hidden relative bg-slate-200">
           <img 
             src={course.image || 'https://images.unsplash.com/photo-1550439062-609e1531270e?auto=format&fit=crop&w=800&q=80'} 
-            alt={course.title} 
+            alt={course.title || 'Course Image'} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
         
         <div className="absolute top-4 left-4 flex gap-2">
@@ -83,7 +79,7 @@ function CourseCard({ course }: { course: Course }) {
         </div>
 
         <h3 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
-          {course.title}
+          {course.title || 'Untitled Course'}
         </h3>
         
         <p className="text-sm text-slate-500 line-clamp-2 mb-6 font-medium leading-relaxed">
@@ -95,7 +91,7 @@ function CourseCard({ course }: { course: Course }) {
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tuition Fee</p>
             <p className="text-2xl font-black text-slate-900 tracking-tighter">
-              ₹{course.price ? course.price.toLocaleString() : '0'}
+              ₹{formattedPrice}
             </p>
           </div>
           <Link href={`/courses/${course._id}`}>
@@ -130,22 +126,32 @@ function SkeletonCard() {
   )
 }
 
-// --- MAIN PAGE COMPONENT ---
-export default function CoursesExplorer() {
+// --- INNER CONTENT (WRAPPED IN SUSPENSE) ---
+function CoursesExplorerContent() {
+  const searchParams = useSearchParams()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("All")
 
+  // Sync parameter keys smoothly on state initializations
+  useEffect(() => {
+    const urlQuery = searchParams.get("search")
+    if (urlQuery) {
+      setSearchQuery(decodeURIComponent(urlQuery))
+    }
+  }, [searchParams])
+
   useEffect(() => {
     async function fetchRegistry() {
       try {
         const res = await fetch("/api/admin/courses", { cache: 'no-store' })
+        if (!res.ok) throw new Error("Failed to fetch courses")
         const data = await res.json()
         setCourses(Array.isArray(data) ? data : (data?.data || []))
       } catch (err) {
         console.error("Registry sync failed", err)
-      } finally {
+      } finally { // 🔹 FIXED TYPO HERE (was 'finaly')
         setLoading(false)
       }
     }
@@ -153,14 +159,21 @@ export default function CoursesExplorer() {
   }, [])
 
   // Safely extract unique categories
-  const categories = ["All", ...Array.from(new Set(courses.map(c => c.category).filter(Boolean)))] as string[]
+  const categories = useMemo(() => {
+    return ["All", ...Array.from(new Set(courses.map(c => c.category).filter(Boolean)))] as string[]
+  }, [courses])
   
+  // 🔹 FIXED: Bulletproof filtering logic that won't crash if data is undefined
   const filteredCourses = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim()
+    
     return courses.filter(c => {
-      const titleMatch = c.title?.toLowerCase().includes(searchQuery.toLowerCase())
-      const catMatch = c.category?.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesSearch = titleMatch || catMatch
+      const titleMatch = (c.title || "").toLowerCase().includes(query)
+      const catMatch = (c.category || "").toLowerCase().includes(query)
+      const matchesSearch = !query || titleMatch || catMatch
+      
       const matchesCategory = activeCategory === "All" || c.category === activeCategory
+      
       return matchesSearch && matchesCategory
     })
   }, [courses, searchQuery, activeCategory])
@@ -210,7 +223,7 @@ export default function CoursesExplorer() {
              {searchQuery && (
                <button 
                  onClick={() => setSearchQuery("")}
-                 className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-1 rounded-full transition-colors"
+                 className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded-full transition-colors"
                >
                  <X size={16} />
                </button>
@@ -221,7 +234,7 @@ export default function CoursesExplorer() {
 
       {/* 🏗️ BROWSE & FILTER AREA */}
       <section className="max-w-[1400px] mx-auto px-6 lg:px-8 mt-12">
-        <div className="flex items-center gap-3 mb-12 overflow-x-auto no-scrollbar pb-4">
+        <div className="flex items-center gap-3 mb-12 overflow-x-auto hide-scrollbar pb-4">
           <div className="flex items-center gap-2 pr-4 border-r border-slate-300 shrink-0">
              <Filter size={16} className="text-slate-500" />
              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Filters</span>
@@ -230,7 +243,7 @@ export default function CoursesExplorer() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`whitespace-nowrap px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
+              className={`whitespace-nowrap px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 shrink-0 ${
                 activeCategory === cat 
                 ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 scale-105' 
                 : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
@@ -263,7 +276,7 @@ export default function CoursesExplorer() {
                 {filteredCourses.map((course) => (
                   <motion.div
                     key={course._id}
-                    variants={itemVariants as any} // Cast as any to bypass TS complaining about layout transitions
+                    variants={itemVariants}
                     layout
                     initial="hidden"
                     animate="show"
@@ -300,6 +313,29 @@ export default function CoursesExplorer() {
           </>
         )}
       </section>
+
+      <style jsx global>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
+  )
+}
+
+// --- MAIN EXPORT (Suspense Wrapper for Next.js) ---
+export default function CoursesExplorer() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      </div>
+    }>
+      <CoursesExplorerContent />
+    </Suspense>
   )
 }

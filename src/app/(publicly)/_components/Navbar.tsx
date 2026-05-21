@@ -1,33 +1,37 @@
 'use client'
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Search, 
   ChevronDown, 
-  GraduationCap, 
-  Users, 
-  Briefcase,
-  Menu,
-  X,
-  ArrowRight,
-  Zap,
   BookOpen,
   Layout,
   Award,
   PlayCircle,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Users,
+  Briefcase,
+  Menu,
+  X,
+  ArrowRight
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
+  const router = useRouter();
   const [activeDropdown, setActiveDropdown] = useState<null | string>(null);
   const [hoveredNav, setHoveredNav] = useState<null | string>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 🔹 State for the search inputs
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch Database Courses
   useEffect(() => {
@@ -59,6 +63,16 @@ export default function Navbar() {
     };
   }, []);
 
+  // 🔹 Search Submission Handler
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
+      setIsMobileMenuOpen(false); // Close mobile menu if open
+      setSearchQuery(""); // Clear the input after searching
+    }
+  };
+
   const megaMenuCourses = courses.slice(0, 4);
 
   const navItems = [
@@ -67,7 +81,6 @@ export default function Navbar() {
     { id: 'enterprise', label: 'Enterprise', hasDropdown: false },
   ];
 
-  // Advanced Spring Physics for smooth, snappy animations
   const springAnim: Transition = { type: "spring", stiffness: 300, damping: 24 };
 
   return (
@@ -135,16 +148,14 @@ export default function Navbar() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.98 }}
                         transition={springAnim}
-                        // 🟢 ADDED z-[100] to fix ribbon overlap, added backdrop-blur for premium feel
                         className="absolute top-[75px] -left-[300px] w-[900px] bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] rounded-3xl overflow-hidden flex z-[100]"
                       >
-                        {/* Categories Sidebar */}
                         <div className="w-64 bg-slate-50/50 p-6 border-r border-slate-100">
                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Disciplines</h4>
                           <ul className="space-y-1">
                             {['Software Engineering', 'Data Science & AI', 'Cloud Computing', 'UI/UX Design', 'Product Management'].map((cat, idx) => (
                               <li key={idx}>
-                                <Link href={`/category/${cat.toLowerCase().replace(/ /g, '-')}`} className="flex items-center justify-between text-sm font-bold text-slate-600 p-3 rounded-xl hover:bg-white hover:text-indigo-600 hover:shadow-sm hover:ring-1 hover:ring-slate-100 transition-all group">
+                                <Link href={`/courses?search=${encodeURIComponent(cat)}`} className="flex items-center justify-between text-sm font-bold text-slate-600 p-3 rounded-xl hover:bg-white hover:text-indigo-600 hover:shadow-sm hover:ring-1 hover:ring-slate-100 transition-all group">
                                   {cat} <ChevronRight size={14} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                                 </Link>
                               </li>
@@ -152,7 +163,6 @@ export default function Navbar() {
                           </ul>
                         </div>
 
-                        {/* Top Programs Grid */}
                         <div className="flex-1 p-8">
                           <div className="flex items-center justify-between mb-6">
                             <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -199,7 +209,6 @@ export default function Navbar() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={springAnim}
-                        // 🟢 ADDED z-[100] and backdrop blur
                         className="absolute top-[75px] left-0 w-72 bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] rounded-3xl overflow-hidden py-3 px-3 z-[100]"
                       >
                         {[
@@ -228,18 +237,22 @@ export default function Navbar() {
             {/* 🔹 Right Side: Search & CTAs */}
             <div className="flex items-center gap-5 flex-1 justify-end">
               
-              {/* Sleek Search Bar */}
-              <div className="hidden md:flex items-center relative group max-w-xs w-full lg:max-w-[260px]">
+              {/* 🔹 Linked Search Bar */}
+              <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center relative group max-w-xs w-full lg:max-w-[260px]">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors z-10" size={16} strokeWidth={2.5} />
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search courses..." 
                   className="w-full bg-slate-100/80 hover:bg-slate-200/50 border border-transparent focus:border-indigo-200 focus:bg-white focus:ring-4 focus:ring-indigo-600/10 rounded-full py-2.5 pl-11 pr-12 text-sm font-semibold text-slate-900 transition-all outline-none placeholder:text-slate-400"
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <kbd className="hidden lg:inline-flex items-center justify-center px-2 py-0.5 rounded-md border border-slate-200 bg-white text-[10px] font-bold text-slate-400 shadow-sm">⌘K</kbd>
-                </div>
-              </div>
+                <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <kbd className="hidden lg:inline-flex items-center justify-center px-2 py-0.5 rounded-md border border-slate-200 bg-white text-[10px] font-bold text-slate-400 shadow-sm hover:text-indigo-600 cursor-pointer">
+                    ↵
+                  </kbd>
+                </button>
+              </form>
 
               {/* Contact Us CTA */}
               <div className="hidden sm:flex items-center gap-3">
@@ -261,8 +274,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* 🔹 Trending Ribbon (Auto-hides gracefully when scrolled) */}
-        {/* 🟢 Removed overlapping risk by explicitly styling its container lower than the dropdowns */}
+        {/* 🔹 Trending Ribbon */}
         <div className={`bg-slate-50 border-t border-slate-100 hidden md:block overflow-hidden transition-all duration-300 ease-in-out relative z-10 ${scrolled ? 'h-0 opacity-0' : 'h-10 opacity-100'}`}>
           <div className="max-w-[1400px] mx-auto px-6 lg:px-8 flex items-center gap-6 h-full overflow-x-auto no-scrollbar mask-fade-edges">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-r border-slate-200 pr-5 shrink-0 flex items-center gap-2">
@@ -295,14 +307,18 @@ export default function Navbar() {
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="fixed inset-0 z-[150] bg-white pt-24 pb-6 px-6 lg:hidden flex flex-col h-screen overflow-y-auto"
           >
-            <div className="relative mb-8">
+            {/* 🔹 Mobile Search Form */}
+            <form onSubmit={handleSearchSubmit} className="relative mb-8">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} strokeWidth={2.5} />
                <input 
                  type="text" 
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
                  placeholder="Search for courses..." 
                  className="w-full bg-slate-100 border-transparent rounded-2xl py-4 pl-12 pr-4 text-base font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-600/10 focus:bg-white focus:border-indigo-200 transition-all"
                />
-            </div>
+               <button type="submit" className="hidden" /> {/* Hidden submit button for mobile keyboard enter */}
+            </form>
 
             <div className="flex flex-col gap-2 flex-1">
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Navigation</div>
@@ -328,7 +344,6 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Helper class for the fade edge on the ribbon */}
       <style dangerouslySetInnerHTML={{__html: `
         .mask-fade-edges {
           -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);

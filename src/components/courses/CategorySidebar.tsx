@@ -1,97 +1,137 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import { ChevronRight, LayoutGrid, Zap } from 'lucide-react'
+import { ChevronRight, Layers, BookOpen, Compass, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
+
+interface Course {
+  category: string;
+  [key: string]: any;
+}
 
 interface SidebarProps {
   active: string
   setTab: (tab: string) => void
-  courses: { category: string }[]
+  courses: Course[]
 }
 
 export default function CategorySidebar({ active, setTab, courses }: SidebarProps) {
   
-  // 🔹 Memoize categories so they don't jump/recalculate on every render
-  const categories = useMemo(() => {
-    const uniqueCategories = Array.from(new Set(courses.map(c => c.category))).filter(Boolean)
-    return ["All Courses", ...uniqueCategories]
+  // 🔹 Memoize categories AND calculate course counts per category
+  const categoryData = useMemo(() => {
+    // 1. Calculate frequencies
+    const counts = courses.reduce((acc: Record<string, number>, course) => {
+      if (course.category) {
+        acc[course.category] = (acc[course.category] || 0) + 1
+      }
+      return acc
+    }, {})
+
+    // 2. Extract unique sorted categories
+    const uniqueCategories = Object.keys(counts).sort()
+
+    // 3. Construct final array with "All Courses" at the top
+    return [
+      { name: "All Courses", count: courses.length },
+      ...uniqueCategories.map(cat => ({ name: cat, count: counts[cat] }))
+    ]
   }, [courses])
 
   return (
-    <aside className="w-full h-fit transition-all duration-500">
+    <aside className="w-full flex flex-col gap-8 transition-all duration-500">
       
-      {/* Sidebar Label */}
-      <div className="flex items-center justify-between px-5 mb-6">
-        <div className="flex items-center gap-2">
-          <LayoutGrid size={14} className="text-blue-600" />
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">
-            Intelligence Domains
-          </p>
+      {/* 🔹 Navigation Section */}
+      <div className="space-y-4">
+        {/* Section Header */}
+        <div className="flex items-center gap-2.5 px-2">
+          <Layers size={18} className="text-blue-600" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+            Browse Programs
+          </h3>
         </div>
-        {active !== "All Courses" && (
-          <motion.div 
-            initial={{ scale: 0 }} 
-            animate={{ scale: 1 }} 
-            className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" 
-          />
-        )}
-      </div>
 
-      {/* Navigation List */}
-      <div className="space-y-1">
-        {categories.map((cat) => {
-          const isActive = active === cat
-          
-          return (
-            <button
-              key={cat}
-              onClick={() => setTab(cat)}
-              className={`
-                w-full flex items-center justify-between px-5 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-500 group relative overflow-hidden
-                ${isActive 
-                  ? "text-white" 
-                  : "text-slate-500 hover:text-blue-600 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50"
-                }
-              `}
-            >
-              {/* Active Background Slide Effect */}
-              {isActive && (
-                <motion.div 
-                  layoutId="activeSidebarTab"
-                  className="absolute inset-0 bg-slate-900 shadow-2xl shadow-slate-300 z-0"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-
-              <span className="relative z-10 truncate pr-4 flex items-center gap-2">
-                {isActive && <Zap size={12} className="text-blue-400 animate-pulse" />}
-                {cat}
-              </span>
-
-              <ChevronRight 
-                size={16} 
+        {/* Category List */}
+        <nav className="flex flex-col gap-1 relative">
+          {categoryData.map((cat) => {
+            const isActive = active === cat.name
+            
+            return (
+              <button
+                key={cat.name}
+                onClick={() => setTab(cat.name)}
                 className={`
-                  relative z-10 transition-all duration-500 
+                  relative w-full flex items-center justify-between px-4 py-3.5 text-sm font-semibold transition-colors duration-300 rounded-xl overflow-hidden group
                   ${isActive 
-                    ? "opacity-100 translate-x-0" 
-                    : "opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0"
+                    ? "text-blue-700" 
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                   }
-                `} 
-              />
-            </button>
-          )
-        })}
+                `}
+              >
+                {/* 🔹 Smooth Sliding Active Background */}
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeSidebarTab"
+                    className="absolute inset-0 bg-blue-50/80 border-l-[3px] border-blue-600 z-0"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+
+                {/* Left Side: Icon & Name */}
+                <div className="relative z-10 flex items-center gap-3 truncate">
+                  {cat.name === "All Courses" ? (
+                    <Compass size={16} className={isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600 transition-colors"} />
+                  ) : (
+                    <BookOpen size={16} className={isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600 transition-colors"} />
+                  )}
+                  <span className="truncate">{cat.name}</span>
+                </div>
+
+                {/* Right Side: Count Badge & Arrow */}
+                <div className="relative z-10 flex items-center gap-3">
+                  {/* Dynamic Course Count Badge */}
+                  <span className={`
+                    text-xs font-bold px-2.5 py-0.5 rounded-full transition-colors
+                    ${isActive ? "bg-blue-100/50 text-blue-600" : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"}
+                  `}>
+                    {cat.count}
+                  </span>
+
+                  <ChevronRight 
+                    size={16} 
+                    className={`
+                      transition-all duration-300 
+                      ${isActive 
+                        ? "text-blue-600 translate-x-0 opacity-100" 
+                        : "text-slate-400 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+                      }
+                    `} 
+                  />
+                </div>
+              </button>
+            )
+          })}
+        </nav>
       </div>
 
-      {/* Visual Footer for Sidebar */}
-      <div className="mt-10 px-5">
-        <div className="p-6 bg-blue-50/50 border border-blue-100 rounded-[2rem] space-y-3">
-           <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">System Status</p>
-           <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Registry Live</p>
-           </div>
+      {/* 🔹 Professional EdTech Helper Widget */}
+      <div className="mx-2 mt-4">
+        <div className="p-6 bg-slate-900 rounded-[1.5rem] relative overflow-hidden group">
+          {/* Decorative Background Blur */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-600/30 rounded-full blur-3xl transition-transform duration-700 group-hover:scale-150" />
+          
+          <div className="relative z-10 space-y-4">
+            <h4 className="text-base font-bold text-white tracking-tight">Need guidance?</h4>
+            <p className="text-xs font-medium text-slate-400 leading-relaxed">
+              Not sure which program aligns with your career goals? Speak with an academic advisor.
+            </p>
+            <Link href="/contactus" className="inline-flex">
+              <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-400 hover:text-blue-300 transition-colors mt-2">
+                Contact Admissions <ArrowRight size={14} />
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
 
