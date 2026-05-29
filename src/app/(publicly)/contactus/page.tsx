@@ -1,47 +1,8 @@
-'use client'
-
-import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import { 
-  Users, DollarSign, CheckCircle2, ArrowRight, ShieldCheck, 
-  Mail, Phone, MapPin, Globe, Headphones, MessageSquare, Sparkles 
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import React from 'react'
+import { ShieldCheck, Globe, CheckCircle2, Sparkles } from 'lucide-react'
+import InstructorForm from './InstructorForm' // Adjust the import path as needed
 
 export default function BecomeInstructorPage() {
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
-
-    const form = e.currentTarget
-    const data = new FormData(form)
-    const url = "https://script.google.com/macros/s/AKfycbzRexSqcFo6093iso8fEdpQTy7uveHkqnBllDgnojIoTQsPvmTwKnpvVfbJPHJAKccv/exec"
-
-    try {
-      await fetch(url, {
-        method: "POST",
-        body: new URLSearchParams({
-          FullName: data.get("fullname") as string,
-          Email: data.get("email") as string,
-          Phone: data.get("phone") as string,
-          Program: data.get("domain") as string, // Maps to the "Program" column in sheet
-          Message: data.get("bio") as string,   // Maps to the "Message" column in sheet
-        }),
-      })
-
-      setIsSubmitted(true)
-      form.reset()
-    } catch (error) {
-      console.error(error)
-      alert("Error submitting faculty dossier application.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] selection:bg-blue-100 font-sans">
       
@@ -74,12 +35,6 @@ export default function BecomeInstructorPage() {
                 detail="Why Join ZenzLearn?" 
                 sub="Your knowledge has the power to shape careers. Reach learners around the world, gain visibility, and establish yourself as a trusted domain expert."
               />
-              <InstructorValueNode 
-                icon={<DollarSign size={20} />} 
-                title="Monetize Expertise" 
-                detail="Earn While You Teach" 
-                sub="We value your engineering experience. Benefit from a flexible earning model that scales consistently as your student cohort base expands."
-              />
             </div>
 
             {/* Core Requirements Badge */}
@@ -94,74 +49,10 @@ export default function BecomeInstructorPage() {
             </div>
           </div>
 
-          {/* 🔹 RIGHT COLUMN: THE GOOGLE SHEETS SYNCED FORM */}
+          {/* 🔹 RIGHT COLUMN: THE CLIENT COMPONENT FORM */}
           <div className="lg:col-span-7 lg:sticky lg:top-12">
             <div className="bg-white border border-slate-200 rounded-[3rem] p-8 md:p-16 shadow-2xl shadow-slate-200/50 relative overflow-hidden">
-              
-              {isSubmitted ? (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }} 
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="py-20 text-center space-y-6"
-                >
-                  <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 size={40} />
-                  </div>
-                  <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Dossier Logged</h2>
-                  <p className="text-slate-500 font-medium max-w-xs mx-auto">
-                    Your faculty application has reached our academic steering registry board. Expect a connection protocol status call within 24 hours.
-                  </p>
-                  <Button variant="outline" onClick={() => setIsSubmitted(false)} className="rounded-xl border-slate-200 font-bold uppercase tracking-widest text-[10px]">
-                    Submit another application
-                  </Button>
-                </motion.div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="label-elite">Full Name</label>
-                      <input name="fullname" required type="text" className="form-input-elite" placeholder="Dr. Alex Mercer" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="label-elite">Work Email</label>
-                      <input name="email" required type="email" className="form-input-elite" placeholder="alex@company.com" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="label-elite">Phone Number</label>
-                      <input name="phone" required type="tel" className="form-input-elite" placeholder="+91 00000 00000" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="label-elite">Primary Domain Expertise</label>
-                      <div className="relative">
-                        <select name="domain" className="form-input-elite bg-slate-50 cursor-pointer pr-10">
-                          <option>Concern Related to Instructor</option>
-                          
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="label-elite">Brief Profile Bio & Background</label>
-                    <textarea name="bio" required className="form-input-elite min-h-[150px] pt-4 resize-none" placeholder="Tell us about your core technical background and lecture records..." />
-                  </div>
-
-                  <Button 
-                    disabled={loading}
-                    type="submit" 
-                    className="w-full h-16 bg-blue-600 hover:bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.3em] text-[11px] shadow-xl transition-all flex items-center justify-center gap-3"
-                  >
-                    {loading ? "Processing..." : <>Submit Faculty Application <ArrowRight size={16} /></>}
-                  </Button>
-
-                  <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    By submitting, you agree to comply with ZenzLearn's standard quality guidelines.
-                  </p>
-                </form>
-              )}
+              <InstructorForm />
             </div>
           </div>
 
@@ -184,37 +75,6 @@ export default function BecomeInstructorPage() {
           </div>
         </div>
       </footer>
-
-      {/* 🔹 INTERNAL BASE COMPONENT STYLES */}
-      <style jsx global>{`
-        .form-input-elite {
-          width: 100%;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 1rem;
-          padding: 1rem 1.25rem;
-          outline: none;
-          transition: all 0.2s;
-          font-weight: 600;
-          font-size: 14px;
-          color: #0f172a;
-        }
-        .form-input-elite:focus {
-          border-color: #3b82f6;
-          background: #fff;
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
-        }
-        .label-elite {
-          font-size: 10px;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #94a3b8;
-          display: block;
-          margin-left: 0.25rem;
-          margin-bottom: 0.6rem;
-        }
-      `}</style>
     </div>
   )
 }

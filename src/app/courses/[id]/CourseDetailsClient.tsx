@@ -8,7 +8,7 @@ import {
   Briefcase, PlayCircle, Star, Target, 
   TrendingUp, Globe, BadgeCheck, GraduationCap,
   ListChecks, SearchCheck, Download,
-  ChevronDown, Award, Zap, Layers, Lock, Play, Send, BookOpen, ChevronRight, FileText, Sparkles, AlertCircle
+  ChevronDown, Award, Layers, Lock, Play, Send, FileText, Sparkles, AlertCircle, ChevronRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import CourseHeader from "@/components/CourseHeader"
@@ -97,15 +97,24 @@ export default function CourseDetailsClient({ course }: { course: any }) {
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-blue-100">
       <CourseHeader category={course.category} />
 
-      {/* 🔹 HERO SECTION (Enterprise Grade) */}
-      <section className="bg-slate-950 text-white pt-20 pb-24 px-5 sm:px-8 relative overflow-hidden">
-        {/* Subtle mesh gradient background */}
-        <div className="absolute top-0 right-0 w-full max-w-3xl h-[600px] bg-blue-600/10 blur-[150px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/4" />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02] pointer-events-none" />
+      {/* 🔹 REDESIGNED HERO SECTION (Full-Width Image) */}
+      <section className="relative w-full pt-28 pb-24 lg:pt-40 lg:pb-32 px-5 sm:px-8 overflow-hidden min-h-[75vh] flex items-center">
+        {/* Background Image & Overlays */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src={course.image} 
+            alt={course.title} 
+            className="w-full h-full object-cover object-center" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-900/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-900/20" />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none" />
+        </div>
         
-        <div className="max-w-7xl mx-auto relative z-10">
-          <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-3xl space-y-6">
+        <div className="max-w-7xl mx-auto w-full relative z-10">
+          <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-3xl space-y-8">
             
+            {/* Breadcrumbs */}
             <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-2.5 text-xs font-semibold tracking-wide">
               <span className="text-slate-400 hover:text-white cursor-pointer transition-colors">Programs</span>
               <ChevronRight size={14} className="text-slate-600" />
@@ -118,57 +127,76 @@ export default function CourseDetailsClient({ course }: { course: any }) {
               )}
             </motion.div>
 
-            <div className="space-y-5">
-              <motion.h1 variants={fadeInUp} className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight text-white leading-[1.15]">
-                {course.title}
-              </motion.h1>
-              <motion.p variants={fadeInUp} className="text-lg md:text-xl text-slate-300 font-normal leading-relaxed max-w-2xl">
-                {details.overview || "Master industry-standard competencies and accelerate your career trajectory with this comprehensive professional certification."}
-              </motion.p>
-            </div>
-
-            <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-x-6 gap-y-4 pt-2">
+            {/* Badges */}
+            <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-3">
               {course.isAvailableSoon && (
-                <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2 backdrop-blur-md">
                   <AlertCircle size={14}/> Waitlist Open
                 </span>
               )}
               {course.recommended && (
-                <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                  <Star size={14} fill="currentColor"/> Highly Recommended
+                <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2 backdrop-blur-md">
+                  <Star size={14} fill="currentColor"/> Recommended
                 </span>
               )}
-              <div className="flex items-center gap-2 text-amber-400 bg-white/5 px-3 py-1.5 rounded-md border border-white/10">
+              <div className="flex items-center gap-1.5 text-amber-400 bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-md border border-white/10 text-[10px] font-black uppercase tracking-widest">
                 <Star size={14} fill="currentColor" />
-                <span className="text-white font-semibold text-sm">4.9</span>
-                <span className="text-slate-400 text-xs ml-1">({Number(course.enrolled).toLocaleString()}+ Ratings)</span>
+                <span className="text-white">4.9</span>
+                <span className="text-slate-400 ml-1">({Number(course.enrolled || 0).toLocaleString()}+)</span>
               </div>
             </motion.div>
 
-            {/* Metrics Bar */}
-            <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-6 sm:gap-12 pt-6 border-t border-slate-800">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0"><Clock size={20} className="text-blue-500"/></div>
+            {/* Title & Overview */}
+            <div className="space-y-6">
+              <motion.h1 variants={fadeInUp} className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
+                {course.title}
+              </motion.h1>
+              <motion.p variants={fadeInUp} className="text-lg text-slate-300 font-medium leading-relaxed max-w-2xl border-l-2 border-blue-500 pl-4 backdrop-blur-sm">
+                {details.overview || "Master industry-standard competencies and accelerate your career trajectory with this comprehensive professional certification."}
+              </motion.p>
+            </div>
+
+            {/* Metrics Grid */}
+            <motion.div variants={fadeInUp} className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center shrink-0"><Clock size={18} className="text-blue-400"/></div>
                 <div>
-                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Duration</p>
-                  <p className="text-sm font-semibold text-white mt-0.5">{course.duration}</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Duration</p>
+                  <p className="text-sm font-bold text-white mt-0.5">{course.duration}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0"><Layers size={20} className="text-blue-500"/></div>
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600/20 flex items-center justify-center shrink-0"><Layers size={18} className="text-emerald-400"/></div>
                 <div>
-                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Level</p>
-                  <p className="text-sm font-semibold text-white mt-0.5">{course.level}</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Level</p>
+                  <p className="text-sm font-bold text-white mt-0.5">{course.level}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0"><GraduationCap size={20} className="text-blue-500"/></div>
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center gap-4 col-span-2 sm:col-span-1">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/20 flex items-center justify-center shrink-0"><GraduationCap size={18} className="text-purple-400"/></div>
                 <div>
-                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Instructor</p>
-                  <p className="text-sm font-semibold text-white mt-0.5">{course.instructor}</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Instructor</p>
+                  <p className="text-sm font-bold text-white mt-0.5 truncate">{course.instructor}</p>
                 </div>
               </div>
             </motion.div>
+
+            {/* Glassmorphic Play/Preview Element (Moved from previous right column)
+            <motion.div variants={fadeInUp} className="pt-6">
+              <div className="inline-flex bg-white/10 backdrop-blur-md border border-white/20 rounded-[1.5rem] p-4 items-center gap-6 cursor-pointer hover:bg-white/20 transition-colors w-full sm:w-auto justify-between sm:justify-start">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
+                    <PlayCircle fill="currentColor" className="text-white w-6 h-6 ml-0.5" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-sm">Course Preview</p>
+                    <p className="text-slate-300 text-xs font-medium">Explore the curriculum</p>
+                  </div>
+                </div>
+                <ChevronRight className="text-slate-400" size={20} />
+              </div>
+            </motion.div> */}
+
           </motion.div>
         </div>
       </section>
@@ -459,17 +487,8 @@ export default function CourseDetailsClient({ course }: { course: any }) {
           <div className="lg:col-span-4 relative">
             <div className="lg:sticky lg:top-28 space-y-6 flex flex-col items-start w-full">
               
-              {/* Box 1: Core Enrollment Card (Hidden on very small screens, integrated into mobile sticky) */}
+              {/* Box 1: Core Enrollment Card */}
               <div className="bg-white rounded-[1.5rem] shadow-xl border border-slate-200 overflow-hidden w-full hidden sm:block">
-                <div className="relative aspect-video bg-slate-900 group cursor-pointer">
-                  <img src={course.image} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-500" alt={course.title} />
-                  <div className="absolute inset-0 bg-slate-900/30 flex items-center justify-center group-hover:bg-slate-900/50 transition-colors">
-                    <div className="w-14 h-14 bg-white/95 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <PlayCircle className="text-blue-600 w-8 h-8 ml-1" fill="currentColor" />
-                    </div>
-                  </div>
-                </div>
-
                 <div className="p-8 space-y-6">
                   <div className="flex items-center justify-between">
                     <span className="text-[2.25rem] font-extrabold text-slate-900 tracking-tight">₹{course.price}</span>

@@ -1,19 +1,20 @@
 'use client'
 
-import React, { useState } from "react"
+import React, { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   ArrowLeft, Plus, CheckCircle2, Loader2, 
   ListChecks, GraduationCap, X, TrendingUp, Rocket,
   Target, Briefcase, FileText, Info, Users, LogOut, LayoutDashboard,
-  BookmarkCheck, Sparkles, HelpCircle, ShieldCheck
+  BookmarkCheck, Sparkles, HelpCircle, ShieldCheck, UploadCloud
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function CreateCoursePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -102,6 +103,18 @@ export default function CreateCoursePage() {
     setFormData(prev => ({ ...prev, details: { ...prev.details, [field]: prev.details[field].filter((_, i) => i !== index) } }))
   }
 
+  // 🔹 Image Upload Handler
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result as string }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -149,7 +162,36 @@ export default function CreateCoursePage() {
               <input placeholder="Accreditor (Instructor)" className="form-input-elite" value={formData.instructor} onChange={(e) => setFormData({...formData, instructor: e.target.value})} />
               <input placeholder="Tuition (₹)" className="form-input-elite" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} />
               <input placeholder="Duration (e.g. 40+ Hours)" className="form-input-elite" value={formData.duration} onChange={(e) => setFormData({...formData, duration: e.target.value})} />
-              <input placeholder="Image Resource URL" className="md:col-span-2 form-input-elite" value={formData.image} onChange={(e) => setFormData({...formData, image: e.target.value})} />
+              
+              {/* 🔹 Replaced URL Input with File Upload Zone */}
+              <div className="md:col-span-2 space-y-2">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-16 bg-[#f8fafc] border border-slate-200 rounded-[1.25rem] flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all group overflow-hidden relative"
+                >
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    onChange={handleImageUpload} 
+                  />
+                  {formData.image ? (
+                     <div className="w-full h-full relative group">
+                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-white font-bold text-xs tracking-widest uppercase">Change Image</span>
+                        </div>
+                     </div>
+                  ) : (
+                     <div className="flex items-center gap-3 text-slate-400 group-hover:text-blue-600 transition-colors">
+                       <UploadCloud size={20} />
+                       <span className="text-sm font-bold">Upload Cover Image</span>
+                     </div>
+                  )}
+                </div>
+              </div>
+
             </div>
           </FormSection>
 
@@ -263,8 +305,6 @@ function FormSection({ title, icon, children }: any) {
   )
 }
 
-// ... (rest of your code remains the same until TagInput)
-
 function TagInput({ title, items, field, onAdd, onRemove, icon }: any) {
   const [v, setV] = useState("");
   
@@ -303,7 +343,6 @@ function TagInput({ title, items, field, onAdd, onRemove, icon }: any) {
         </button>
       </div>
 
-      {/* 🔹 FIXED TAG CONTAINER FOR BIG DATA 🔹 */}
       <div className="flex flex-col gap-2 pt-2">
         {(items || []).map((it: string, i: number) => (
           <motion.div 
@@ -332,8 +371,6 @@ function TagInput({ title, items, field, onAdd, onRemove, icon }: any) {
     </div>
   )
 }
-
-// ... (rest of your components like ObjectBuilder, Header, etc.)
 
 function ObjectBuilder({ title, items, onAdd, onRemove, label1, label2, icon }: any) {
   const [v1, setV1] = useState(""); const [v2, setV2] = useState("")

@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { 
   Search, 
   ChevronDown, 
@@ -53,7 +54,9 @@ export default function Navbar() {
   // Handle Scroll and Resize events
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
-    const handleResize = () => { if (window.innerWidth >= 1024) setIsMobileMenuOpen(false); };
+    const handleResize = () => { 
+      if (window.innerWidth >= 1024) setIsMobileMenuOpen(false); 
+    };
     
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('resize', handleResize);
@@ -63,13 +66,23 @@ export default function Navbar() {
     };
   }, []);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; }
+  }, [isMobileMenuOpen]);
+
   // 🔹 Search Submission Handler
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
-      setIsMobileMenuOpen(false); // Close mobile menu if open
-      setSearchQuery(""); // Clear the input after searching
+      setIsMobileMenuOpen(false); 
+      setSearchQuery(""); 
     }
   };
 
@@ -78,7 +91,8 @@ export default function Navbar() {
   const navItems = [
     { id: 'curriculum', label: 'Curriculum', hasDropdown: true },
     { id: 'community', label: 'Community', hasDropdown: true },
-    { id: 'enterprise', label: 'Enterprise', hasDropdown: false },
+    { id: 'about', label: 'About Us', hasDropdown: false },
+    // { id: 'enterprise', label: 'Enterprise', hasDropdown: false },
   ];
 
   const springAnim: Transition = { type: "spring", stiffness: 300, damping: 24 };
@@ -92,18 +106,42 @@ export default function Navbar() {
             : "bg-white border-b border-slate-100 py-1"
         }`}
       >
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20 gap-8">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20 gap-4 sm:gap-8">
             
-            {/* 🔹 Brand Logo */}
-            <Link href="/" className="flex items-center gap-3 group cursor-pointer z-50">
-              <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20 group-hover:scale-105 group-hover:rotate-3 transition-transform duration-300">
-                <BookOpen size={20} className="text-white" strokeWidth={2.5} />
-              </div>
-              <span className="text-2xl font-black tracking-tight text-slate-900 flex items-center">
-                zenZ<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">learn</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1.5 mb-3 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-              </span>
+            {/* 🔹 Brand Logo with Advanced Animation */}
+            <Link href="/" className="flex items-center z-50 shrink-0 outline-none relative group">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
+                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                className="relative flex items-center justify-center"
+              >
+                {/* Dynamic hover glow matching the logo's blue and orange colors */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1fb2e7]/40 to-[#fca311]/40 blur-[20px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
+
+                {/* Continuous smooth floating animation */}
+                <motion.div
+                  animate={{ y: [0, -3, 0] }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="relative"
+                >
+                  <Image
+                    src="/zenzlearn_logo.png"
+                    alt="zenZlearn Logo"
+                    width={220}
+                    height={65}
+                    priority
+                    className="w-[150px] sm:w-[190px] lg:w-[220px] h-auto object-contain drop-shadow-sm transition-all duration-300"
+                  />
+                </motion.div>
+              </motion.div>
             </Link>
 
             {/* 🔹 Center Navigation (Desktop) */}
@@ -111,7 +149,7 @@ export default function Navbar() {
               {navItems.map((item) => (
                 <div 
                   key={item.id}
-                  className="relative h-full flex items-center px-4"
+                  className="relative h-full flex items-center px-3 xl:px-4"
                   onMouseEnter={() => {
                     setHoveredNav(item.id);
                     if (item.hasDropdown) setActiveDropdown(item.id);
@@ -140,7 +178,7 @@ export default function Navbar() {
                     )}
                   </Link>
 
-                  {/* 🔹 Mega Menu: Curriculum */}
+                  {/* 🔹 Responsive Mega Menu: Curriculum */}
                   <AnimatePresence>
                     {activeDropdown === 'curriculum' && item.id === 'curriculum' && (
                       <motion.div 
@@ -148,14 +186,14 @@ export default function Navbar() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.98 }}
                         transition={springAnim}
-                        className="absolute top-[75px] -left-[300px] w-[900px] bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] rounded-3xl overflow-hidden flex z-[100]"
+                        className="absolute top-[70px] xl:top-[75px] left-0 lg:-left-[100px] xl:-left-[250px] w-[750px] xl:w-[900px] bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] rounded-3xl overflow-hidden flex z-[100]"
                       >
-                        <div className="w-64 bg-slate-50/50 p-6 border-r border-slate-100">
+                        <div className="w-56 xl:w-64 bg-slate-50/50 p-5 xl:p-6 border-r border-slate-100 shrink-0">
                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Disciplines</h4>
                           <ul className="space-y-1">
                             {['Software Engineering', 'Data Science & AI', 'Cloud Computing', 'UI/UX Design', 'Product Management'].map((cat, idx) => (
                               <li key={idx}>
-                                <Link href={`/courses?search=${encodeURIComponent(cat)}`} className="flex items-center justify-between text-sm font-bold text-slate-600 p-3 rounded-xl hover:bg-white hover:text-indigo-600 hover:shadow-sm hover:ring-1 hover:ring-slate-100 transition-all group">
+                                <Link href={`/courses?search=${encodeURIComponent(cat)}`} className="flex items-center justify-between text-xs xl:text-sm font-bold text-slate-600 p-2.5 xl:p-3 rounded-xl hover:bg-white hover:text-indigo-600 hover:shadow-sm hover:ring-1 hover:ring-slate-100 transition-all group">
                                   {cat} <ChevronRight size={14} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                                 </Link>
                               </li>
@@ -163,7 +201,7 @@ export default function Navbar() {
                           </ul>
                         </div>
 
-                        <div className="flex-1 p-8">
+                        <div className="flex-1 p-6 xl:p-8">
                           <div className="flex items-center justify-between mb-6">
                             <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                               <Sparkles size={16} className="text-indigo-500" /> Featured Programs
@@ -173,7 +211,7 @@ export default function Navbar() {
                             </Link>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3 xl:gap-4">
                             {isLoading ? (
                               [...Array(4)].map((_, i) => <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-2xl" />)
                             ) : (
@@ -181,15 +219,15 @@ export default function Navbar() {
                                 <Link 
                                   key={course._id} 
                                   href={`/courses/${course._id}`}
-                                  className="flex items-start gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/50 hover:shadow-md hover:shadow-indigo-500/5 transition-all duration-300 group"
+                                  className="flex items-start gap-3 xl:gap-4 p-3 xl:p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/50 hover:shadow-md hover:shadow-indigo-500/5 transition-all duration-300 group"
                                 >
-                                  <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:shadow-inner transition-colors">
-                                    <Layout size={20} className="text-slate-500 group-hover:text-white transition-colors" />
+                                  <div className="w-10 h-10 xl:w-12 xl:h-12 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:shadow-inner transition-colors">
+                                    <Layout size={18} className="text-slate-500 group-hover:text-white transition-colors xl:w-5 xl:h-5" />
                                   </div>
-                                  <div>
-                                    <h5 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-700 transition-colors">{course.title}</h5>
-                                    <p className="text-[11px] font-bold text-slate-500 mt-1.5 flex items-center gap-1.5 uppercase tracking-wider">
-                                      <Award size={14} className="text-emerald-500"/> {course.level || 'Beginner'}
+                                  <div className="min-w-0">
+                                    <h5 className="text-xs xl:text-sm font-bold text-slate-900 truncate group-hover:text-indigo-700 transition-colors">{course.title}</h5>
+                                    <p className="text-[10px] xl:text-[11px] font-bold text-slate-500 mt-1 xl:mt-1.5 flex items-center gap-1.5 uppercase tracking-wider">
+                                      <Award size={12} className="text-emerald-500 xl:w-3.5 xl:h-3.5"/> {course.level || 'Beginner'}
                                     </p>
                                   </div>
                                 </Link>
@@ -209,20 +247,19 @@ export default function Navbar() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={springAnim}
-                        className="absolute top-[75px] left-0 w-72 bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] rounded-3xl overflow-hidden py-3 px-3 z-[100]"
+                        className="absolute top-[70px] xl:top-[75px] left-0 w-64 xl:w-72 bg-white/95 backdrop-blur-2xl border border-slate-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] rounded-3xl overflow-hidden py-3 px-3 z-[100]"
                       >
                         {[
                           { href: '/reviews', icon: Users, label: 'Student Success', desc: 'Read alumni stories', color: 'text-blue-600', bg: 'bg-blue-50', hover: 'group-hover:bg-blue-600' },
                           { href: '/instructor', icon: Briefcase, label: 'Become an Instructor', desc: 'Join our faculty', color: 'text-amber-600', bg: 'bg-amber-50', hover: 'group-hover:bg-amber-500' },
-                          { href: '/events', icon: PlayCircle, label: 'Live Events', desc: 'Webinars & workshops', color: 'text-emerald-600', bg: 'bg-emerald-50', hover: 'group-hover:bg-emerald-500' }
                         ].map((link, i) => (
-                          <Link key={i} href={link.href} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 group transition-all duration-300">
-                            <div className={`${link.bg} p-3 rounded-xl ${link.color} ${link.hover} group-hover:text-white group-hover:shadow-md transition-all`}>
-                              <link.icon size={18} strokeWidth={2.5} />
+                          <Link key={i} href={link.href} className="flex items-center gap-3 xl:gap-4 p-2.5 xl:p-3 rounded-2xl hover:bg-slate-50 group transition-all duration-300">
+                            <div className={`${link.bg} p-2.5 xl:p-3 rounded-xl ${link.color} ${link.hover} group-hover:text-white group-hover:shadow-md transition-all shrink-0`}>
+                              <link.icon size={16} strokeWidth={2.5} className="xl:w-[18px] xl:h-[18px]" />
                             </div>
-                            <div>
-                              <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{link.label}</div>
-                              <div className="text-xs font-medium text-slate-500 mt-0.5">{link.desc}</div>
+                            <div className="min-w-0">
+                              <div className="text-xs xl:text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">{link.label}</div>
+                              <div className="text-[10px] xl:text-xs font-medium text-slate-500 mt-0.5 truncate">{link.desc}</div>
                             </div>
                           </Link>
                         ))}
@@ -235,38 +272,39 @@ export default function Navbar() {
             </nav>
 
             {/* 🔹 Right Side: Search & CTAs */}
-            <div className="flex items-center gap-5 flex-1 justify-end">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 justify-end">
               
-              {/* 🔹 Linked Search Bar */}
-              <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center relative group max-w-xs w-full lg:max-w-[260px]">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors z-10" size={16} strokeWidth={2.5} />
+              {/* 🔹 Linked Search Bar (Hidden on Mobile) */}
+              <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center relative group max-w-[200px] lg:max-w-[260px] w-full">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors z-10" size={14} strokeWidth={2.5} />
                 <input 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search courses..." 
-                  className="w-full bg-slate-100/80 hover:bg-slate-200/50 border border-transparent focus:border-indigo-200 focus:bg-white focus:ring-4 focus:ring-indigo-600/10 rounded-full py-2.5 pl-11 pr-12 text-sm font-semibold text-slate-900 transition-all outline-none placeholder:text-slate-400"
+                  className="w-full bg-slate-100/80 hover:bg-slate-200/50 border border-transparent focus:border-indigo-200 focus:bg-white focus:ring-4 focus:ring-indigo-600/10 rounded-full py-2 pl-9 pr-10 text-xs sm:text-sm font-semibold text-slate-900 transition-all outline-none placeholder:text-slate-400"
                 />
-                <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <kbd className="hidden lg:inline-flex items-center justify-center px-2 py-0.5 rounded-md border border-slate-200 bg-white text-[10px] font-bold text-slate-400 shadow-sm hover:text-indigo-600 cursor-pointer">
+                <button type="submit" className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <kbd className="hidden lg:inline-flex items-center justify-center px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[9px] font-bold text-slate-400 shadow-sm hover:text-indigo-600 cursor-pointer">
                     ↵
                   </kbd>
                 </button>
               </form>
 
-              {/* Contact Us CTA */}
-              <div className="hidden sm:flex items-center gap-3">
+              {/* Contact Us CTA (Hidden on tiny mobile, visible sm+) */}
+              <div className="hidden sm:flex items-center">
                 <Link href="/contactus">
-                  <Button className="bg-slate-900 hover:bg-indigo-600 text-white rounded-full h-10 px-6 font-bold text-[13px] shadow-lg shadow-slate-900/10 transition-all duration-300 active:scale-95 hover:shadow-indigo-600/25">
-                    Contact Us
+                  <Button className="bg-slate-900 hover:bg-indigo-600 text-white rounded-full h-9 sm:h-10 px-4 sm:px-6 font-bold text-xs sm:text-[13px] shadow-lg shadow-slate-900/10 transition-all duration-300 active:scale-95 hover:shadow-indigo-600/25">
+                    Contact
                   </Button>
                 </Link>
               </div>
 
-              {/* Mobile Menu Toggle */}
+              {/* Mobile Menu Toggle (Visible < 1024px) */}
               <button 
-                className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-colors"
+                className="lg:hidden p-2 -mr-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-colors shrink-0"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? <X size={24} strokeWidth={2.5} /> : <Menu size={24} strokeWidth={2.5} />}
               </button>
@@ -274,20 +312,20 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* 🔹 Trending Ribbon */}
+        {/* 🔹 Trending Ribbon (Hidden on Mobile) */}
         <div className={`bg-slate-50 border-t border-slate-100 hidden md:block overflow-hidden transition-all duration-300 ease-in-out relative z-10 ${scrolled ? 'h-0 opacity-0' : 'h-10 opacity-100'}`}>
           <div className="max-w-[1400px] mx-auto px-6 lg:px-8 flex items-center gap-6 h-full overflow-x-auto no-scrollbar mask-fade-edges">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-r border-slate-200 pr-5 shrink-0 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> Top Searches
             </span>
             {isLoading ? (
-              <div className="h-3 w-48 bg-slate-200/50 animate-pulse rounded-full" />
+              <div className="h-3 w-48 bg-slate-200/50 animate-pulse rounded-full shrink-0" />
             ) : (
               courses.slice(0, 8).map((course) => (
                 <Link 
                   key={course._id} 
                   href={`/courses/${course._id}`} 
-                  className="text-[12px] font-bold text-slate-500 hover:text-indigo-600 whitespace-nowrap transition-colors"
+                  className="text-[11px] lg:text-[12px] font-bold text-slate-500 hover:text-indigo-600 whitespace-nowrap transition-colors"
                 >
                   {course.title}
                 </Link>
@@ -305,38 +343,39 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed inset-0 z-[150] bg-white pt-24 pb-6 px-6 lg:hidden flex flex-col h-screen overflow-y-auto"
+            className="fixed inset-0 z-[150] bg-white pt-20 sm:pt-24 pb-6 px-4 sm:px-6 lg:hidden flex flex-col h-[100dvh] overflow-y-auto"
           >
             {/* 🔹 Mobile Search Form */}
-            <form onSubmit={handleSearchSubmit} className="relative mb-8">
+            <form onSubmit={handleSearchSubmit} className="relative mb-6 sm:mb-8 shrink-0">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} strokeWidth={2.5} />
                <input 
                  type="text" 
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
                  placeholder="Search for courses..." 
-                 className="w-full bg-slate-100 border-transparent rounded-2xl py-4 pl-12 pr-4 text-base font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-600/10 focus:bg-white focus:border-indigo-200 transition-all"
+                 className="w-full bg-slate-100 border-transparent rounded-2xl py-3 sm:py-4 pl-12 pr-4 text-sm sm:text-base font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-600/10 focus:bg-white focus:border-indigo-200 transition-all"
                />
-               <button type="submit" className="hidden" /> {/* Hidden submit button for mobile keyboard enter */}
+               <button type="submit" className="hidden" />
             </form>
 
-            <div className="flex flex-col gap-2 flex-1">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Navigation</div>
-              <Link href="/courses" className="font-bold text-slate-900 text-2xl py-4 border-b border-slate-100 flex items-center justify-between group" onClick={() => setIsMobileMenuOpen(false)}>
-                Curriculum <ArrowRight size={24} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"/>
+            <div className="flex flex-col gap-1 sm:gap-2 flex-1 overflow-y-auto no-scrollbar">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 sm:mb-4 px-2">Navigation</div>
+              <Link href="/courses" className="font-bold text-slate-900 text-xl sm:text-2xl py-3 sm:py-4 px-2 border-b border-slate-100 flex items-center justify-between group" onClick={() => setIsMobileMenuOpen(false)}>
+                Curriculum <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"/>
               </Link>
-              <Link href="/reviews" className="font-bold text-slate-900 text-2xl py-4 border-b border-slate-100 flex items-center justify-between group" onClick={() => setIsMobileMenuOpen(false)}>
-                Community <ArrowRight size={24} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"/>
+              <Link href="/reviews" className="font-bold text-slate-900 text-xl sm:text-2xl py-3 sm:py-4 px-2 border-b border-slate-100 flex items-center justify-between group" onClick={() => setIsMobileMenuOpen(false)}>
+                Community <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"/>
               </Link>
-              <Link href="/enterprise" className="font-bold text-slate-900 text-2xl py-4 border-b border-slate-100 flex items-center justify-between group" onClick={() => setIsMobileMenuOpen(false)}>
-                Enterprise <ArrowRight size={24} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"/>
+              <Link href="/enterprise" className="font-bold text-slate-900 text-xl sm:text-2xl py-3 sm:py-4 px-2 border-b border-slate-100 flex items-center justify-between group" onClick={() => setIsMobileMenuOpen(false)}>
+                Enterprise <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"/>
               </Link>
             </div>
 
-            <div className="mt-8 flex flex-col gap-3">
+            {/* Mobile Bottom CTAs */}
+            <div className="mt-6 sm:mt-8 flex flex-col gap-3 shrink-0">
               <Link href="/contactus" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl h-14 font-bold text-base shadow-lg shadow-slate-900/10 transition-colors">
-                  Contact Us
+                <Button className="w-full bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl h-12 sm:h-14 font-bold text-sm sm:text-base shadow-lg shadow-slate-900/10 transition-colors">
+                  Contact Admissions
                 </Button>
               </Link>
             </div>
@@ -348,6 +387,13 @@ export default function Navbar() {
         .mask-fade-edges {
           -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
           mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}} />
     </>
