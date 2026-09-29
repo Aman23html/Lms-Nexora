@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db"; 
 import Course from "@/models/course.model";
+import { requireAdmin } from "@/lib/admin-auth";
+import mongoose from "mongoose";
 
 /**
  * 🔹 GET: Retrieve Global Manifest
  * Fetches all courses for the Admin Inventory and public Explorer.
  */
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   try {
     await dbConnect();
     
@@ -18,10 +23,10 @@ export async function GET() {
     console.log(`[Registry] Synchronization successful. ${courses.length} nodes retrieved.`);
     
     return NextResponse.json(courses, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Critical Registry Fetch Error:", error);
     return NextResponse.json(
-      { message: "Failed to synchronize course inventory", error: error.message }, 
+      { message: "Failed to synchronize course inventory" }, 
       { status: 500 }
     );
   }
@@ -32,6 +37,9 @@ export async function GET() {
  * Commits a full manifest (Core Identity + Deep Details) to the database.
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   try {
     await dbConnect();
     
@@ -56,11 +64,11 @@ export async function POST(req: Request) {
       { message: "Course successfully deployed to Nexora Mainnet", data: newCourse }, 
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Critical Deployment Error:", error);
     
     // Mongoose Schema Validation Handlers
-    if (error.name === 'ValidationError') {
+    if (error instanceof mongoose.Error.ValidationError) {
       return NextResponse.json(
         { message: "Manifest Schema Violation", details: error.errors }, 
         { status: 400 }
@@ -68,7 +76,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { message: "Mainframe Internal Error", error: error.message }, 
+      { message: "Mainframe Internal Error" }, 
       { status: 500 }
     );
   }

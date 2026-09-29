@@ -45,14 +45,14 @@ function CourseCard({ course }: { course: Course }) {
   return (
     <div className="group bg-white border border-slate-200/80 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 flex flex-col h-full">
       {/* Card Header / Image */}
-      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 p-1">
+      <div className="relative aspect-16/10 overflow-hidden bg-slate-100 p-1">
         <div className="w-full h-full rounded-[1.5rem] overflow-hidden relative bg-slate-200">
           <img 
             src={course.image || 'https://images.unsplash.com/photo-1550439062-609e1531270e?auto=format&fit=crop&w=800&q=80'} 
             alt={course.title || 'Course Image'} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 bg-linear-to-t from-slate-900/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
         
         <div className="absolute top-4 left-4 flex gap-2">
@@ -60,7 +60,7 @@ function CourseCard({ course }: { course: Course }) {
              {course.level || 'Beginner'}
            </Badge>
            {course.recommended && (
-             <Badge className="bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none font-bold text-[10px] uppercase tracking-wider px-3 py-1.5 shadow-md shadow-blue-500/30 flex items-center gap-1">
+             <Badge className="bg-linear-to-r from-blue-600 to-violet-600 text-white border-none font-bold text-[10px] uppercase tracking-wider px-3 py-1.5 shadow-md shadow-blue-500/30 flex items-center gap-1">
                <Sparkles size={12} /> Trending
              </Badge>
            )}
@@ -108,8 +108,8 @@ function CourseCard({ course }: { course: Course }) {
 // --- SKELETON LOADER ---
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-slate-100 rounded-[2rem] h-[500px] overflow-hidden flex flex-col">
-      <div className="aspect-[16/10] bg-slate-100 animate-pulse m-1 rounded-[1.5rem]" />
+    <div className="bg-white border border-slate-100 rounded-[2rem] h-125 overflow-hidden flex flex-col">
+      <div className="aspect-16/10 bg-slate-100 animate-pulse m-1 rounded-[1.5rem]" />
       <div className="p-8 flex flex-col flex-1 gap-4">
         <div className="flex justify-between">
           <div className="w-24 h-6 bg-slate-100 animate-pulse rounded-lg" />
@@ -145,7 +145,7 @@ function CoursesExplorerContent() {
   useEffect(() => {
     async function fetchRegistry() {
       try {
-        const res = await fetch("/api/admin/courses", { cache: 'no-store' })
+        const res = await fetch("/api/courses", { cache: 'no-store' })
         if (!res.ok) throw new Error("Failed to fetch courses")
         const data = await res.json()
         setCourses(Array.isArray(data) ? data : (data?.data || []))
@@ -183,8 +183,8 @@ function CoursesExplorerContent() {
       
       {/* 🌌 HERO / SEARCH SECTION */}
       <section className="bg-white border-b border-slate-200/60 pt-20 pb-24 px-6 relative overflow-hidden">
-        <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-blue-50 rounded-full blur-[100px] opacity-60 pointer-events-none" />
-        <div className="absolute top-[20%] left-[10%] w-[400px] h-[400px] bg-indigo-50 rounded-full blur-[100px] opacity-60 pointer-events-none" />
+        <div className="absolute top-0 right-[10%] w-150 h-150 bg-blue-50 rounded-full blur-[100px] opacity-60 pointer-events-none" />
+        <div className="absolute top-[20%] left-[10%] w-100 h-100 bg-indigo-50 rounded-full blur-[100px] opacity-60 pointer-events-none" />
         
         <div className="max-w-4xl mx-auto relative z-10 text-center">
           <motion.div 
@@ -198,7 +198,7 @@ function CoursesExplorerContent() {
             initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[1.05] mb-8"
           >
-            Expand Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">Potential.</span>
+            Expand Your <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-violet-600">Potential.</span>
           </motion.h1>
 
           <motion.p 
@@ -233,7 +233,7 @@ function CoursesExplorerContent() {
       </section>
 
       {/* 🏗️ BROWSE & FILTER AREA */}
-      <section className="max-w-[1400px] mx-auto px-6 lg:px-8 mt-12">
+      <section className="max-w-350 mx-auto px-6 lg:px-8 mt-12">
         <div className="flex items-center gap-3 mb-12 overflow-x-auto hide-scrollbar pb-4">
           <div className="flex items-center gap-2 pr-4 border-r border-slate-300 shrink-0">
              <Filter size={16} className="text-slate-500" />
@@ -298,7 +298,7 @@ function CoursesExplorerContent() {
                  </div>
                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">No Pathways Found</h3>
                  <p className="text-slate-500 text-base font-medium max-w-sm mx-auto">
-                   We couldn't find any courses matching "{searchQuery}". Try adjusting your query or resetting your filters.
+                   We couldn&apos;t find any courses matching &quot;{searchQuery}&quot;. Try adjusting your query or resetting your filters.
                  </p>
                  <div className="pt-4">
                    <Button 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Course from "@/models/course.model";
+import { requireAdmin } from "@/lib/admin-auth";
 
 /**
  * 1. GET Single Course
@@ -10,6 +11,9 @@ export async function GET(
   req: Request, 
   context: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   try {
     const { id } = await context.params;
     await dbConnect();
@@ -25,10 +29,10 @@ export async function GET(
     }
 
     return NextResponse.json(course, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Registry Read Error:", error);
     return NextResponse.json(
-      { message: "Protocol failure during retrieval", error: error.message }, 
+      { message: "Protocol failure during retrieval" }, 
       { status: 500 }
     );
   }
@@ -42,6 +46,9 @@ export async function PUT(
   req: Request, 
   context: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   try {
     const { id } = await context.params;
     const body = await req.json();
@@ -70,10 +77,10 @@ export async function PUT(
     }
 
     return NextResponse.json(updatedCourse, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Registry Write Error:", error);
     return NextResponse.json(
-      { message: "Critical failure during manifest revision", error: error.message }, 
+      { message: "Critical failure during manifest revision" }, 
       { status: 500 }
     );
   }
@@ -87,6 +94,9 @@ export async function DELETE(
   req: Request, 
   context: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   try {
     const { id } = await context.params;
     await dbConnect();
@@ -104,10 +114,10 @@ export async function DELETE(
       { message: "Resource successfully decommissioned from registry" }, 
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Registry Purge Error:", error);
     return NextResponse.json(
-      { message: "Purge protocol failed", error: error.message }, 
+      { message: "Purge protocol failed" }, 
       { status: 500 }
     );
   }

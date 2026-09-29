@@ -3,15 +3,61 @@
 import React, { useEffect, useState, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { signOut } from "next-auth/react"
 import { 
-  ArrowLeft, Loader2, ListChecks, FileText, Target, 
+  ArrowLeft, Loader2, FileText, Target, 
   TrendingUp, Rocket, Save, Info, BookmarkCheck, Sparkles,
   Database, Plus, X, Video, Image as ImageIcon, Award,
-  Briefcase, Check, Users
+  Briefcase, Check, Users, AlertCircle
 } from "lucide-react"
 
 // Assuming you have a Button component, using standard HTML button as fallback
 import { Button } from "@/components/ui/button" 
+
+type Lesson = { title: string; video: string; duration: string; isFreePreview: boolean }
+type FAQ = { question: string; answer: string }
+type WhyJoin = { title: string; content: string }
+type Benefits = { description: string; marketGrowth: string; careerProspects: string }
+type Certification = { awardedBy: string; features: string[] }
+type CourseDetails = {
+  description: string
+  overview: string
+  learningOutcomes: string[]
+  highlights: string[]
+  keyFeatures: string[]
+  skillsCovered: string[]
+  benefits: Benefits
+  eligibility: string
+  preRequisites: string
+  certification: Certification
+  whyJoin: WhyJoin[]
+  faqs: FAQ[]
+  industriesCovered: string[]
+  jobRoles: string[]
+}
+type CourseFormData = {
+  title: string
+  category: string
+  subCategory: string
+  instructor: string
+  price: string
+  duration: string
+  image: string
+  enrolled: string
+  recommended: boolean
+  level: string
+  isAvailableSoon: boolean
+  details: CourseDetails
+  lessons: Lesson[]
+}
+type StringArrayPath =
+  | "details.learningOutcomes"
+  | "details.highlights"
+  | "details.keyFeatures"
+  | "details.skillsCovered"
+  | "details.certification.features"
+  | "details.industriesCovered"
+  | "details.jobRoles"
 
 export default function EditCoursePage() {
   const router = useRouter()
@@ -20,9 +66,10 @@ export default function EditCoursePage() {
 
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
+  const [pageError, setPageError] = useState("")
 
   // Fully mapped to your Mongoose Schema
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CourseFormData>({
     title: "",
     category: "",
     subCategory: "All",
@@ -60,24 +107,37 @@ export default function EditCoursePage() {
   const getCourseDetails = useCallback(async () => {
     if (!id) return
     try {
+      setPageError("")
       setFetching(true)
       const res = await fetch(`/api/admin/courses/${id}`, { cache: 'no-store' })
-      if (res.ok) {
-        const data = await res.json()
-        setFormData(prev => ({
-          ...prev,
-          ...data,
-          details: {
-            ...prev.details,
-            ...(data.details || {}),
-            benefits: { ...prev.details.benefits, ...(data.details?.benefits || {}) },
-            certification: { ...prev.details.certification, ...(data.details?.certification || {}) }
-          },
-          lessons: data.lessons || []
-        }))
-      }
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Could not load this course.")
+
+      setFormData(prev => ({
+        ...prev,
+        ...data,
+        details: {
+          ...prev.details,
+          ...(data.details || {}),
+          learningOutcomes: data.details?.learningOutcomes || [],
+          highlights: data.details?.highlights || [],
+          keyFeatures: data.details?.keyFeatures || [],
+          skillsCovered: data.details?.skillsCovered || [],
+          industriesCovered: data.details?.industriesCovered || [],
+          jobRoles: data.details?.jobRoles || [],
+          faqs: data.details?.faqs || [],
+          whyJoin: data.details?.whyJoin || [],
+          benefits: { ...prev.details.benefits, ...(data.details?.benefits || {}) },
+          certification: {
+            ...prev.details.certification,
+            ...(data.details?.certification || {}),
+            features: data.details?.certification?.features || []
+          }
+        },
+        lessons: data.lessons || []
+      }))
     } catch (err) {
-      console.error("Hydration failed", err)
+      setPageError(err instanceof Error ? err.message : "Could not load this course.")
     } finally {
       setFetching(false)
     }
@@ -86,57 +146,70 @@ export default function EditCoursePage() {
   useEffect(() => { getCourseDetails() }, [getCourseDetails])
 
   // --- Handlers ---
-  const handleChange = (field: string, value: any) => {
+  const handleChange = <K extends keyof CourseFormData,>(field: K, value: CourseFormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleDetailChange = (field: string, value: any) => {
+  const handleDetailChange = <K extends keyof CourseDetails>(field: K, value: CourseDetails[K]) => {
     setFormData(prev => ({ ...prev, details: { ...prev.details, [field]: value } }))
   }
 
-  const handleNestedDetailChange = (parent: 'benefits' | 'certification', field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      details: {
-        ...prev.details,
-        [parent]: { ...(prev.details[parent] as any), [field]: value }
+  const handleNestedDetailChange = (parent: 'benefits' | 'certification', field: string, value: string | string[]) => {
+    setFormData(prev => {
+      if (parent === "benefits") {
+        return { ...prev, details: { ...prev.details, benefits: { ...prev.details.benefits, [field]: value as string } } }
       }
-    }))
+      if (field === "features") {
+        return { ...prev, details: { ...prev.details, certification: { ...prev.details.certification, features: value as string[] } } }
+      }
+      return { ...prev, details: { ...prev.details, certification: { ...prev.details.certification, awardedBy: value as string } } }
+    })
   }
 
-  const addStringArrayItem = (path: string, value: string) => {
+  const updateStringArray = (path: StringArrayPath, update: (items: string[]) => string[]) => {
+    setFormData(prev => {
+      const details = { ...prev.details }
+      switch (path) {
+        case "details.learningOutcomes": details.learningOutcomes = update(details.learningOutcomes); break
+        case "details.highlights": details.highlights = update(details.highlights); break
+        case "details.keyFeatures": details.keyFeatures = update(details.keyFeatures); break
+        case "details.skillsCovered": details.skillsCovered = update(details.skillsCovered); break
+        case "details.certification.features":
+          details.certification = { ...details.certification, features: update(details.certification.features) }
+          break
+        case "details.industriesCovered": details.industriesCovered = update(details.industriesCovered); break
+        case "details.jobRoles": details.jobRoles = update(details.jobRoles); break
+      }
+      return { ...prev, details }
+    })
+  }
+
+  const addStringArrayItem = (path: StringArrayPath, value: string) => {
     if (!value.trim()) return
-    setFormData(prev => {
-      const newState = JSON.parse(JSON.stringify(prev)) // Deep clone for safety with nested paths
-      const keys = path.split('.')
-      let current = newState
-      for (let i = 0; i < keys.length - 1; i++) current = current[keys[i]]
-      const targetArray = current[keys[keys.length - 1]] || []
-      current[keys[keys.length - 1]] = [...targetArray, value.trim()]
-      return newState
-    })
+    updateStringArray(path, items => [...items, value.trim()])
   }
 
-  const removeStringArrayItem = (path: string, index: number) => {
-    setFormData(prev => {
-      const newState = JSON.parse(JSON.stringify(prev))
-      const keys = path.split('.')
-      let current = newState
-      for (let i = 0; i < keys.length - 1; i++) current = current[keys[i]]
-      current[keys[keys.length - 1]] = current[keys[keys.length - 1]].filter((_: any, i: number) => i !== index)
-      return newState
-    })
+  const removeStringArrayItem = (path: StringArrayPath, index: number) => {
+    updateStringArray(path, items => items.filter((_, itemIndex) => itemIndex !== index))
   }
 
-  const addObjectItem = (field: 'faqs' | 'whyJoin', obj: any) => {
-    setFormData(prev => ({ ...prev, details: { ...prev.details, [field]: [...prev.details[field], obj] } }))
+  const addObjectItem = (field: 'faqs' | 'whyJoin', obj: FAQ | WhyJoin) => {
+    if (field === "faqs") {
+      setFormData(prev => ({ ...prev, details: { ...prev.details, faqs: [...prev.details.faqs, obj as FAQ] } }))
+    } else {
+      setFormData(prev => ({ ...prev, details: { ...prev.details, whyJoin: [...prev.details.whyJoin, obj as WhyJoin] } }))
+    }
   }
 
   const removeObjectItem = (field: 'faqs' | 'whyJoin', index: number) => {
-    setFormData(prev => ({ ...prev, details: { ...prev.details, [field]: prev.details[field].filter((_: any, i: number) => i !== index) } }))
+    if (field === "faqs") {
+      setFormData(prev => ({ ...prev, details: { ...prev.details, faqs: prev.details.faqs.filter((_, itemIndex) => itemIndex !== index) } }))
+    } else {
+      setFormData(prev => ({ ...prev, details: { ...prev.details, whyJoin: prev.details.whyJoin.filter((_, itemIndex) => itemIndex !== index) } }))
+    }
   }
 
-  const addLesson = (lesson: any) => {
+  const addLesson = (lesson: Lesson) => {
     setFormData(prev => ({ ...prev, lessons: [...prev.lessons, lesson] }))
   }
 
@@ -146,6 +219,7 @@ export default function EditCoursePage() {
 
   async function updateCourse(e: React.FormEvent) {
     e.preventDefault()
+    setPageError("")
     setLoading(true)
     try {
       const res = await fetch(`/api/admin/courses/${id}`, {
@@ -153,7 +227,11 @@ export default function EditCoursePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
       })
-      if (res.ok) router.push("/admin/courses")
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Could not save this course.")
+      router.push("/admin/courses")
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : "Could not save this course. Please try again.")
     } finally { setLoading(false) }
   }
 
@@ -164,27 +242,41 @@ export default function EditCoursePage() {
     </div>
   )
 
+  if (pageError && !formData.title) return (
+    <main className="min-h-screen bg-slate-50 px-6 flex items-center justify-center">
+      <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-200/50">
+        <AlertCircle className="mx-auto mb-4 text-rose-500" size={36} />
+        <h1 className="text-xl font-bold text-slate-900">Course unavailable</h1>
+        <p role="alert" className="mt-2 text-sm text-slate-500">{pageError}</p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Button variant="outline" onClick={() => router.push("/admin/courses")}>Back to courses</Button>
+          <Button onClick={getCourseDetails} className="bg-blue-600 hover:bg-blue-700">Try again</Button>
+        </div>
+      </section>
+    </main>
+  )
+
   return (
     <div className="min-h-screen bg-[#fcfcfc] pb-24 selection:bg-blue-100">
       {/* Navbar */}
-      <nav className="sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 py-4 mb-10 flex items-center justify-between">
+      <nav className="sticky top-0 z-100 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 py-4 mb-10 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => router.push("/admin/courses")} className="rounded-xl text-slate-500 hover:text-blue-600 gap-2 font-bold text-xs uppercase tracking-widest">
             <ArrowLeft size={16} /> Registry
           </Button>
-          <div className="h-4 w-[1px] bg-slate-200 mx-2" />
+          <div className="h-4 w-px bg-slate-200 mx-2" />
           <div className="flex items-center gap-2 text-slate-900 font-black tracking-tighter text-lg uppercase">
              <Database size={20} className="text-blue-600" /> Nexora <span className="text-blue-600">Revision</span>
           </div>
         </div>
-        <Button onClick={() => router.push("/login")} variant="ghost" className="text-red-500 hover:bg-red-50 font-bold text-xs uppercase tracking-widest">Sign Out</Button>
+        <Button onClick={() => signOut({ redirectTo: "/login" })} variant="ghost" className="text-red-500 hover:bg-red-50 font-bold text-xs uppercase tracking-widest">Sign Out</Button>
       </nav>
 
       <div className="max-w-6xl mx-auto px-6">
         {/* Header */}
         <div className="mb-16 flex flex-col md:flex-row justify-between items-end gap-8">
           <div className="space-y-2">
-            <h1 className="text-6xl font-black tracking-tighter text-slate-900 leading-[0.85]">Revise <br /> <span className="text-blue-600">Manifest</span></h1>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-slate-900 leading-[0.95]">Revise <br /> <span className="text-blue-600">Manifest</span></h1>
             <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest opacity-60 italic font-bold">Instance ID: {id}</p>
           </div>
           
@@ -195,7 +287,7 @@ export default function EditCoursePage() {
                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Status</p>
                 <p className={`text-xs font-black uppercase ${formData.isAvailableSoon ? 'text-orange-500' : 'text-emerald-500'}`}>{formData.isAvailableSoon ? "Queue" : "Live"}</p>
               </div>
-              <ToggleSwitch isActive={formData.isAvailableSoon} onToggle={() => handleChange("isAvailableSoon", !formData.isAvailableSoon)} activeColor="bg-orange-500" />
+              <ToggleSwitch isActive={formData.isAvailableSoon} onToggle={() => handleChange("isAvailableSoon", !formData.isAvailableSoon)} activeColor="bg-orange-500" label="Toggle course availability" />
             </div>
             
             {/* Logic Toggle: Recommended */}
@@ -204,12 +296,18 @@ export default function EditCoursePage() {
                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Tag</p>
                 <p className={`text-xs font-black uppercase ${formData.recommended ? 'text-blue-600' : 'text-slate-400'}`}>Recommended</p>
               </div>
-              <ToggleSwitch isActive={formData.recommended} onToggle={() => handleChange("recommended", !formData.recommended)} activeColor="bg-blue-600" />
+              <ToggleSwitch isActive={formData.recommended} onToggle={() => handleChange("recommended", !formData.recommended)} activeColor="bg-blue-600" label="Toggle recommended status" />
             </div>
           </div>
         </div>
 
         <motion.form onSubmit={updateCourse} className="space-y-12">
+          {pageError && (
+            <div role="alert" className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">
+              <AlertCircle size={18} className="mt-0.5 shrink-0" />
+              <p>{pageError}</p>
+            </div>
+          )}
           
           {/* SECTION 1: Core Identity */}
           <FormSection title="Registry Identity" icon={<Info size={20}/>}>
@@ -248,8 +346,8 @@ export default function EditCoursePage() {
                 {/* SECTION 2: Narrative & Overview */}
                 <FormSection title="Narrative & Scope" icon={<FileText size={20}/>}>
                   <div className="space-y-10">
-                    <div><label className="label-elite">Overview (Hook / Short Summary)</label><textarea className="form-input-elite min-h-[80px]" value={formData.details.overview} onChange={(e) => handleDetailChange("overview", e.target.value)} /></div>
-                    <div><label className="label-elite">Deep Description (Long Form)</label><textarea className="form-input-elite min-h-[160px]" value={formData.details.description} onChange={(e) => handleDetailChange("description", e.target.value)} /></div>
+                    <div><label className="label-elite">Overview (Hook / Short Summary)</label><textarea className="form-input-elite min-h-20" value={formData.details.overview} onChange={(e) => handleDetailChange("overview", e.target.value)} /></div>
+                    <div><label className="label-elite">Deep Description (Long Form)</label><textarea className="form-input-elite min-h-40" value={formData.details.description} onChange={(e) => handleDetailChange("description", e.target.value)} /></div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                       <TagInput title="Learning Outcomes" field="details.learningOutcomes" onAdd={addStringArrayItem} onRemove={removeStringArrayItem} items={formData.details.learningOutcomes} icon={<Target size={14}/>} />
@@ -265,8 +363,8 @@ export default function EditCoursePage() {
                 {/* SECTION 3: Access, Prerequisites & Certification */}
                 <FormSection title="Access & Certification" icon={<Award size={20}/>}>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                      <div><label className="label-elite">Eligibility</label><textarea className="form-input-elite min-h-[120px]" value={formData.details.eligibility} onChange={(e) => handleDetailChange("eligibility", e.target.value)} /></div>
-                      <div><label className="label-elite">Pre-requisites</label><textarea className="form-input-elite min-h-[120px]" value={formData.details.preRequisites} onChange={(e) => handleDetailChange("preRequisites", e.target.value)} /></div>
+                      <div><label className="label-elite">Eligibility</label><textarea className="form-input-elite min-h-30" value={formData.details.eligibility} onChange={(e) => handleDetailChange("eligibility", e.target.value)} /></div>
+                      <div><label className="label-elite">Pre-requisites</label><textarea className="form-input-elite min-h-30" value={formData.details.preRequisites} onChange={(e) => handleDetailChange("preRequisites", e.target.value)} /></div>
                    </div>
                    
                    <div className="mt-10 p-8 bg-slate-50 border border-slate-200 rounded-[2rem]">
@@ -323,7 +421,7 @@ export default function EditCoursePage() {
 
           {/* Sticky Footer */}
           <div className="sticky bottom-8 z-50 p-4 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-[2.5rem] shadow-2xl flex gap-4 max-w-2xl mx-auto">
-            <Button type="submit" disabled={loading} className="flex-[2] h-16 rounded-2xl bg-blue-600 hover:bg-slate-950 text-white font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-3">
+            <Button type="submit" disabled={loading} className="flex-2 h-16 rounded-2xl bg-blue-600 hover:bg-slate-950 text-white font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-3">
               {loading ? <Loader2 className="animate-spin" /> : <><Save size={18}/> Commit Revision</>}
             </Button>
             <Button type="button" onClick={() => router.push('/admin/courses')} className="flex-1 h-16 rounded-2xl border border-slate-200 bg-white text-slate-400 font-black uppercase tracking-widest text-[10px] hover:bg-red-50 hover:text-red-500 transition-all">Cancel</Button>
@@ -346,8 +444,8 @@ export default function EditCoursePage() {
 
 function FormSection({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) {
   return (
-    <section className="bg-white border border-slate-100 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.02)] rounded-[3rem] p-10 space-y-10">
-      <div className="flex items-center gap-4 border-b border-slate-50 pb-8">
+    <section className="bg-white border border-slate-100 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.02)] rounded-3xl p-5 sm:p-8 space-y-6 sm:space-y-10">
+    <div className="flex items-center gap-4 border-b border-slate-50 pb-6 sm:pb-8">
         <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center shadow-inner text-blue-600">{icon}</div>
         <h3 className="text-sm font-black uppercase tracking-[0.25em] text-slate-900">{title}</h3>
       </div>
@@ -356,15 +454,15 @@ function FormSection({ title, icon, children }: { title: string, icon: React.Rea
   )
 }
 
-function ToggleSwitch({ isActive, onToggle, activeColor = "bg-blue-600" }: { isActive: boolean, onToggle: () => void, activeColor?: string }) {
+function ToggleSwitch({ isActive, onToggle, activeColor = "bg-blue-600", label }: { isActive: boolean, onToggle: () => void, activeColor?: string, label: string }) {
   return (
-    <button type="button" onClick={onToggle} className={`w-16 h-9 rounded-full transition-all flex items-center px-1.5 ${isActive ? activeColor : 'bg-slate-200'}`}>
+    <button type="button" role="switch" aria-checked={isActive} aria-label={label} onClick={onToggle} className={`w-16 h-9 rounded-full transition-all flex items-center px-1.5 ${isActive ? activeColor : 'bg-slate-200'}`}>
       <motion.div layout transition={{ type: "spring", stiffness: 300, damping: 20 }} className="w-6 h-6 bg-white rounded-full shadow-md" />
     </button>
   )
 }
 
-function TagInput({ title, items, field, onAdd, onRemove, icon }: any) {
+function TagInput({ title, items, field, onAdd, onRemove, icon }: { title: string; items: string[]; field: StringArrayPath; onAdd: (field: StringArrayPath, value: string) => void; onRemove: (field: StringArrayPath, index: number) => void; icon: React.ReactNode }) {
   const [v, setV] = useState("");
   const handleAdd = () => { if (v.trim()) { onAdd(field, v.trim()); setV(""); } };
 
@@ -376,7 +474,7 @@ function TagInput({ title, items, field, onAdd, onRemove, icon }: any) {
           value={v} 
           onChange={(e) => setV(e.target.value)} 
           onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd(); } }} 
-          className="form-input-elite min-h-[60px] py-3 resize-none" 
+          className="form-input-elite min-h-15 py-3 resize-none"
           placeholder={`Define ${title}...`} 
         />
         <button type="button" onClick={handleAdd} className="w-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-blue-600 transition-all shrink-0"><Plus size={20}/></button>
@@ -386,7 +484,7 @@ function TagInput({ title, items, field, onAdd, onRemove, icon }: any) {
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={i} className="flex items-start justify-between gap-4 px-5 py-4 bg-white border border-slate-200 rounded-2xl hover:border-blue-300 transition-all shadow-sm">
             <div className="flex gap-3 items-start overflow-hidden">
                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 shrink-0" />
-               <p className="text-[13px] font-bold text-slate-700 leading-relaxed break-words">{it}</p>
+               <p className="text-[13px] font-bold text-slate-700 leading-relaxed wrap-break-word">{it}</p>
             </div>
             <button type="button" onClick={() => onRemove(field, i)} className="p-2 text-slate-300 hover:text-red-500 transition-all shrink-0"><X size={16} /></button>
           </motion.div>
@@ -396,20 +494,20 @@ function TagInput({ title, items, field, onAdd, onRemove, icon }: any) {
   )
 }
 
-function ObjectBuilder({ title, items, onAdd, onRemove, label1, label2 }: any) {
+function ObjectBuilder({ title, items, onAdd, onRemove, label1, label2 }: { title: string; items: (FAQ | WhyJoin)[]; onAdd: (first: string, second: string) => void; onRemove: (index: number) => void; label1: string; label2: string }) {
   const [v1, setV1] = useState(""); const [v2, setV2] = useState("")
   return (
-    <div className="bg-white border border-slate-100 p-10 rounded-[3rem] shadow-2xl space-y-6">
+    <div className="bg-white border border-slate-100 p-5 sm:p-8 rounded-3xl shadow-xl shadow-slate-100/50 space-y-6">
       <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-2"><Plus size={16}/> {title}</h3>
       <input placeholder={label1} className="form-input-elite" value={v1} onChange={(e) => setV1(e.target.value)} />
-      <textarea placeholder={label2} className="form-input-elite min-h-[100px]" value={v2} onChange={(e) => setV2(e.target.value)} />
+      <textarea placeholder={label2} className="form-input-elite min-h-25" value={v2} onChange={(e) => setV2(e.target.value)} />
       <Button type="button" className="w-full bg-slate-50 text-slate-900 text-[10px] font-black uppercase h-14 rounded-2xl hover:bg-blue-600 hover:text-white transition-all shadow-sm" onClick={() => { if(v1 && v2) { onAdd(v1, v2); setV1(""); setV2(""); } }}>Append Entry</Button>
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 mt-4">
-        {(items || []).map((it: any, i: number) => (
+      <div className="space-y-3 max-h-100 overflow-y-auto pr-2 mt-4">
+        {items.map((it, i) => (
           <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-2 relative group">
             <button type="button" onClick={() => onRemove(i)} className="absolute top-4 right-4 text-slate-300 hover:text-red-500"><X size={16} /></button>
-            <p className="font-black text-[12px] text-slate-800 pr-6">{it.question || it.title}</p>
-            <p className="text-[12px] text-slate-500 line-clamp-2">{it.answer || it.content}</p>
+            <p className="font-black text-[12px] text-slate-800 pr-6">{"question" in it ? it.question : it.title}</p>
+            <p className="text-[12px] text-slate-500 line-clamp-2">{"answer" in it ? it.answer : it.content}</p>
           </div>
         ))}
       </div>
@@ -417,13 +515,18 @@ function ObjectBuilder({ title, items, onAdd, onRemove, label1, label2 }: any) {
   )
 }
 
-function LessonBuilder({ lessons, onAdd, onRemove }: { lessons: any[], onAdd: (l: any) => void, onRemove: (i: number) => void }) {
+function LessonBuilder({ lessons, onAdd, onRemove }: { lessons: Lesson[]; onAdd: (lesson: Lesson) => void; onRemove: (index: number) => void }) {
   const [newLesson, setNewLesson] = useState({ title: "", video: "", duration: "", isFreePreview: false })
+  const [error, setError] = useState("")
 
   const handleAdd = () => {
-    if (!newLesson.title || !newLesson.video) return alert("Title and Video URL are required")
+    if (!newLesson.title.trim() || !newLesson.video.trim()) {
+      setError("Add a lesson title and video URL before adding it to the curriculum.")
+      return
+    }
     onAdd(newLesson)
     setNewLesson({ title: "", video: "", duration: "", isFreePreview: false })
+    setError("")
   }
 
   return (
@@ -444,12 +547,13 @@ function LessonBuilder({ lessons, onAdd, onRemove }: { lessons: any[], onAdd: (l
         </div>
         <div className="md:col-span-2 flex flex-col items-center pb-2">
           <label className="label-elite text-center w-full">Free Preview</label>
-          <ToggleSwitch isActive={newLesson.isFreePreview} onToggle={() => setNewLesson(p => ({...p, isFreePreview: !p.isFreePreview}))} activeColor="bg-emerald-500" />
+          <ToggleSwitch isActive={newLesson.isFreePreview} onToggle={() => setNewLesson(p => ({...p, isFreePreview: !p.isFreePreview}))} activeColor="bg-emerald-500" label="Toggle free lesson preview" />
         </div>
         <div className="md:col-span-1">
-          <button type="button" onClick={handleAdd} className="w-full h-[52px] bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-blue-600 transition-all"><Plus size={20}/></button>
+          <button type="button" onClick={handleAdd} aria-label="Add lesson" className="w-full h-13 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-blue-600 transition-all"><Plus size={20}/></button>
         </div>
       </div>
+      {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
 
       {/* Lesson List */}
       <div className="space-y-3">

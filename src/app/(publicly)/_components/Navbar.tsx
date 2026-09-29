@@ -6,10 +6,8 @@ import Image from "next/image";
 import { 
   Search, 
   ChevronDown, 
-  BookOpen,
   Layout,
   Award,
-  PlayCircle,
   ChevronRight,
   Sparkles,
   Users,
@@ -22,13 +20,15 @@ import Link from "next/link";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
+type NavbarCourse = { _id: string; title: string; level?: string }
+
 export default function Navbar() {
   const router = useRouter();
   const [activeDropdown, setActiveDropdown] = useState<null | string>(null);
   const [hoveredNav, setHoveredNav] = useState<null | string>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<NavbarCourse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // 🔹 State for the search inputs
@@ -38,9 +38,9 @@ export default function Navbar() {
   useEffect(() => {
     async function fetchNavbarCourses() {
       try {
-        const res = await fetch("/api/admin/courses", { cache: 'no-store' });
+        const res = await fetch("/api/courses", { cache: 'no-store' });
         const data = await res.json();
-        const fetched = Array.isArray(data) ? data : (data.data || []);
+        const fetched: NavbarCourse[] = Array.isArray(data) ? data : (data.data || []);
         setCourses(fetched);
       } catch (error) {
         console.error("Navbar Registry Error:", error);

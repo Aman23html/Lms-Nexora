@@ -6,11 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import CategorySidebar from './CategorySidebar'
 import FilterRibbon from './FilterRibbon'
 import SearchBar from './SearchBar'
-import CourseCard, { Course } from './CourseCard'
-import { Globe, Edit3, Loader2, Database, AlertCircle, SearchX, BookOpen, Layers, Settings2 } from 'lucide-react'
+import CourseCard, { type Course } from './CourseCard'
+import { Edit3, Database, AlertCircle, SearchX, Settings2 } from 'lucide-react'
+
+type CourseWithDetails = Course & { details?: { skillsCovered?: string[] } }
 
 interface Props {
-  onEditCourse?: (course: any) => void;
+  onEditCourse?: (course: CourseWithDetails) => void;
 }
 
 export default function CourseExplorer({ onEditCourse }: Props) {
@@ -18,14 +20,14 @@ export default function CourseExplorer({ onEditCourse }: Props) {
   const [activeTab, setActiveTab] = useState("All Courses")
   const [activeSub, setActiveSub] = useState("All")
   const [searchQuery, setSearchQuery] = useState("") 
-  const [courses, setCourses] = useState<any[]>([])
+  const [courses, setCourses] = useState<CourseWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
 
   const fetchRegistryData = useCallback(async () => {
     try {
       setIsLoading(true)
-      const res = await fetch("/api/admin/courses", { cache: 'no-store' })
+      const res = await fetch("/api/courses", { cache: 'no-store' })
       if (!res.ok) throw new Error("Catalog sync failed")
       const data = await res.json()
       const fetchedCourses = Array.isArray(data) ? data : (data.data || data.courses || [])
@@ -62,7 +64,7 @@ export default function CourseExplorer({ onEditCourse }: Props) {
                           course.instructor?.toLowerCase().includes(query) ||
                           course.category?.toLowerCase().includes(query) ||
                           course.subCategory?.toLowerCase().includes(query) ||
-                          course.details?.skillsCovered?.some((skill: string) => skill.toLowerCase().includes(query))
+                          course.details?.skillsCovered?.some(skill => skill.toLowerCase().includes(query))
 
       return matchTab && matchSub && matchSearch
     })
@@ -71,7 +73,7 @@ export default function CourseExplorer({ onEditCourse }: Props) {
   return (
     <section className="relative min-h-screen bg-[#F9FAFB] py-12 md:py-20 overflow-hidden">
       {/* Subtle Background Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] z-0 opacity-40 pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] z-0 opacity-40 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
@@ -129,7 +131,7 @@ export default function CourseExplorer({ onEditCourse }: Props) {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
           
           {/* SIDEBAR */}
-          <aside className="w-full lg:w-[260px] shrink-0 lg:sticky lg:top-24 h-fit flex flex-col gap-6">
+          <aside className="w-full lg:w-65 shrink-0 lg:sticky lg:top-24 h-fit flex flex-col gap-6">
             <CategorySidebar
               active={activeTab}
               setTab={(tab) => {
@@ -164,7 +166,7 @@ export default function CourseExplorer({ onEditCourse }: Props) {
                 // SKELETON LOADER
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="h-[400px] w-full bg-white border border-slate-200 rounded-2xl p-5 flex flex-col">
+                    <div key={i} className="h-100 w-full bg-white border border-slate-200 rounded-2xl p-5 flex flex-col">
                         <div className="w-full h-40 bg-slate-100 rounded-xl animate-pulse mb-5" />
                         <div className="w-1/3 h-4 bg-slate-100 rounded animate-pulse mb-3" />
                         <div className="w-full h-6 bg-slate-100 rounded animate-pulse mb-2" />
@@ -202,7 +204,7 @@ export default function CourseExplorer({ onEditCourse }: Props) {
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                 >
                   <AnimatePresence mode="popLayout">
-                    {filteredCourses.map((course, idx) => (
+                    {filteredCourses.map(course => (
                       <motion.div
                         key={course._id || course.id}
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -246,7 +248,7 @@ export default function CourseExplorer({ onEditCourse }: Props) {
                     </div>
                     <h3 className="text-lg font-bold text-slate-900">No programs found</h3>
                     <p className="text-sm text-slate-500 mt-2 text-center max-w-sm font-medium">
-                      We couldn't find any courses matching your current filters or search query.
+                      We couldn&apos;t find any courses matching your current filters or search query.
                     </p>
                     <button
                       type="button"

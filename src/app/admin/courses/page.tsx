@@ -7,19 +7,24 @@ import { useEffect, useState, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
-  Plus, Search, Trash2, Edit3, Users, Clock, IndianRupee,
-  ExternalLink, ShieldCheck, RefreshCw, Loader2, Database,
-  ChevronRight, AlertCircle, ArrowLeft, LogOut, LayoutDashboard,
+  Plus, Search, Trash2, Users,
+  ExternalLink, RefreshCw, Loader2, Database,
+  ChevronRight, AlertCircle,
   ChevronLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import type { Course } from "@/components/courses/CourseCard"
+
+type AdminCourse = Course & { _id: string; isAvailableSoon?: boolean }
 
 export default function CoursesPage() {
-  const [courses, setCourses] = useState<any[]>([])
+  const [courses, setCourses] = useState<AdminCourse[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [loadError, setLoadError] = useState("")
+  const [actionError, setActionError] = useState("")
   const router = useRouter()
 
   const fetchCourses = useCallback(async (isManual = false) => {
@@ -32,12 +37,15 @@ export default function CoursesPage() {
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json' }
       })
-      
+      if (!res.ok) throw new Error("Could not load the course registry. Please retry.")
+
       const data = await res.json()
-      const fetchedCourses = Array.isArray(data) ? data : (data.data || data.courses || [])
+      const fetchedCourses: AdminCourse[] = Array.isArray(data) ? data : (data.data || data.courses || [])
       setCourses(fetchedCourses)
+      setLoadError("")
     } catch (error) {
       console.error("Registry Sync Error:", error)
+      setLoadError(error instanceof Error ? error.message : "Could not load the course registry. Please retry.")
     } finally {
       setIsLoading(false)
       setIsSyncing(false)
@@ -49,7 +57,7 @@ export default function CoursesPage() {
   }, [fetchCourses])
 
   const filteredCourses = useMemo(() => {
-    return courses.filter((c: any) => 
+    return courses.filter(c => 
       c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.category?.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -58,17 +66,16 @@ export default function CoursesPage() {
   async function deleteCourse(id: string) {
     if (!confirm("Decommission this pathway? This action is permanent.")) return
     
+    setActionError("")
+    const originalCourses = [...courses]
     try {
-      const originalCourses = [...courses]
       setCourses(prev => prev.filter(c => c._id !== id))
       const res = await fetch(`/api/admin/courses/${id}`, { method: "DELETE" })
-      
-      if (!res.ok) {
-        setCourses(originalCourses)
-        alert("Server failed to decommission resource.")
-      }
+      if (!res.ok) throw new Error("The course could not be deleted. Your inventory has been restored.")
     } catch (error) {
       console.error("Purge Error:", error)
+      setCourses(originalCourses)
+      setActionError(error instanceof Error ? error.message : "The course could not be deleted. Your inventory has been restored.")
     }
   }
 
@@ -76,7 +83,7 @@ export default function CoursesPage() {
     <div className="min-h-screen bg-[#fafafa] pb-24 selection:bg-blue-100">
       
       {/* 🔹 ELITE ADMIN HEADER */}
-      <nav className="sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 py-4 flex items-center justify-between shadow-sm">
+      <nav className="sticky top-0 z-100 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
@@ -86,7 +93,7 @@ export default function CoursesPage() {
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             Dashboard
           </Button>
-          <div className="h-4 w-[1px] bg-slate-200 mx-2" />
+          <div className="h-4 w-px bg-slate-200 mx-2" />
           <div className="flex items-center gap-2 text-slate-900 font-black tracking-tighter text-lg uppercase">
              <Database size={20} className="text-blue-600" /> Nexora <span className="text-blue-600">Inventory</span>
           </div>
@@ -146,7 +153,7 @@ export default function CoursesPage() {
             
             <Button 
               onClick={() => router.push("/admin/courses/create")}
-              className="w-full sm:w-auto bg-slate-900 hover:bg-blue-600 text-white h-[68px] px-10 rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center gap-3"
+              className="w-full sm:w-auto bg-slate-900 hover:bg-blue-600 text-white h-17 px-10 rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center gap-3"
             >
               <Plus size={20} strokeWidth={3} /> Initialize Pathway
             </Button>
@@ -154,15 +161,26 @@ export default function CoursesPage() {
         </div>
 
         {/* 🔹 Main Content Area */}
+        {actionError && <p role="alert" className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">{actionError}</p>}
+
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-40 bg-white rounded-[3rem] border border-slate-100 border-dashed">
             <Loader2 className="animate-spin text-blue-600 mb-6" size={48} />
             <p className="font-black uppercase tracking-[0.3em] text-xs text-slate-400">Syncing Intelligence Nodes...</p>
           </div>
+        ) : loadError ? (
+          <div role="alert" className="flex flex-col items-center justify-center gap-4 rounded-[2rem] border border-rose-100 bg-white px-6 py-16 text-center">
+            <AlertCircle className="text-rose-500" size={36} />
+            <div>
+              <h2 className="font-bold text-slate-900">Registry unavailable</h2>
+              <p className="mt-1 text-sm text-slate-500">{loadError}</p>
+            </div>
+            <Button onClick={() => fetchCourses()} className="bg-slate-900 text-white hover:bg-blue-600">Retry</Button>
+          </div>
         ) : (
           <div className="space-y-4">
             <AnimatePresence mode="popLayout">
-              {filteredCourses.map((course: any, idx: number) => (
+              {filteredCourses.map((course, idx) => (
                 <motion.div
                   layout
                   initial={{ opacity: 0, y: 20 }}
@@ -176,11 +194,11 @@ export default function CoursesPage() {
 
                   <div className="flex items-center gap-8 w-full lg:w-[45%]">
                     <div className="w-24 h-24 rounded-[2rem] overflow-hidden shrink-0 border-4 border-slate-50 shadow-inner bg-slate-50">
-                      <img src={course.image} className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700" alt="" />
+                      <img src={course.image} className="w-full h-full object-cover grayscale-20 group-hover:grayscale-0 transition-all duration-700" alt={course.title} />
                     </div>
                     <div className="space-y-2 min-w-0">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="font-black text-slate-900 tracking-tighter text-2xl leading-none truncate max-w-[300px]">
+                        <h2 className="font-black text-slate-900 tracking-tighter text-2xl leading-none truncate max-w-75">
                           {course.title}
                         </h2>
                         {course.isAvailableSoon ? (
